@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// -- Enums --
+
+enum SignalStatus {
+  active
+  resolved
+}
+
+enum RiskLevel {
+  active
+  at_risk
+  needs_attention
+}
+
+enum SignalEventType {
+  created
+  note_added
+  worked_today
+  risk_increased
+  resolved
+  reopened
+  link_attached
+  edited
+}
+
+// -- Models --
+
+model Signal {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  status        SignalStatus @default(active)
+  riskLevel     RiskLevel    @default(active)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  lastWorkedAt  DateTime?
+  resolvedAt    DateTime?
+  focusedOnDate DateTime?
+
+  events SignalEvent[]
+
+  @@index([status])
+  @@index([riskLevel])
+  @@index([focusedOnDate])
+  @@index([lastWorkedAt])
+  @@index([createdAt])
+}
+
+model SignalEvent {
+  id        String          @id @default(cuid())
+  signalId  String
+  eventType SignalEventType
+  note      String?
+  link      String?
+  createdAt DateTime        @default(now())
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId])
+  @@index([createdAt])
+  @@index([signalId, createdAt])
+}
