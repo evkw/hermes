@@ -1,4 +1,4 @@
-import { PrismaClient } from "../app/generated/prisma/client";
+import { PrismaClient, SignalEventType } from "../app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // ---------------------------------------------------------------------------
@@ -262,10 +262,10 @@ async function main() {
 
         // Build events
         const events: {
-          eventType: string;
+          eventType: SignalEventType;
           note?: string;
           createdAt: Date;
-        }[] = [{ eventType: "created", createdAt }];
+        }[] = [{ eventType: SignalEventType.created, createdAt }];
 
         let resolvedAt: Date | undefined;
         let lastWorkedAt: Date | undefined;
@@ -278,7 +278,7 @@ async function main() {
           resolvedAt.setUTCHours(randInt(9, 18), randInt(0, 59), randInt(0, 59));
           lastWorkedAt = resolvedAt;
 
-          events.push({ eventType: "resolved", createdAt: resolvedAt });
+          events.push({ eventType: SignalEventType.resolved, createdAt: resolvedAt });
 
           // Resolved signals have risk reset to active
         } else {
@@ -287,7 +287,7 @@ async function main() {
           if (Math.random() < 0.7) {
             const hoursLater = randInt(1, 72);
             lastWorkedAt = new Date(createdAt.getTime() + hoursLater * 60 * 60 * 1000);
-            events.push({ eventType: "worked_today", createdAt: lastWorkedAt });
+            events.push({ eventType: SignalEventType.worked_today, createdAt: lastWorkedAt });
           }
         }
 
@@ -297,7 +297,7 @@ async function main() {
             createdAt.getTime() + randInt(1, 48) * 60 * 60 * 1000
           );
           events.push({
-            eventType: "note_added",
+            eventType: SignalEventType.note_added,
             note: pick(NOTES),
             createdAt: noteTime,
           });
