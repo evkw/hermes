@@ -33,31 +33,27 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 The project includes a script to populate the database with realistic signal data for testing and development.
 
-> **Note:** Stop the dev server before running the seed script to avoid SQLite lock contention.
-
-> **SQLite only:** This script uses the SQLite adapter and will only work with a local `file:` database. It will refuse to run if `DATABASE_URL` points to a non-SQLite connection. Do not point your local environment at a production database and run this script — the `--clear` flag will delete all data.
+> **Warning:** Do not run this script against a production database.
 
 ```bash
-npx tsx scripts/seed-signals.ts [options]
+npx tsx --require dotenv/config scripts/seed-signals.ts [options]
 ```
 
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--month <1-12>` | Month to seed | Current month |
 | `--year <number>` | Year to seed | Current year |
-| `--clear` | Delete **all** existing signals before seeding | Off |
 
 ### Examples
 
 ```bash
 # Seed the current month with default settings
-npx tsx scripts/seed-signals.ts
+npx tsx --require dotenv/config scripts/seed-signals.ts
 
 # Seed a specific month
-npx tsx scripts/seed-signals.ts --month 3 --year 2026
+npx tsx --require dotenv/config scripts/seed-signals.ts --month 3 --year 2026
 
-# Clear all existing data, then seed
-npx tsx scripts/seed-signals.ts --clear --month 1 --year 2026
+
 ```
 
 Each day in the target month gets 1–6 signals with randomized titles, descriptions, risk levels, and a mix of active/resolved statuses. Resolved signals include a full event trail (created → resolved). To add more title patterns, edit the `TITLE_TEMPLATES` array at the top of `scripts/seed-signals.ts`.

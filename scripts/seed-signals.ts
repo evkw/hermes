@@ -1,5 +1,5 @@
 import { PrismaClient } from "../app/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 // ---------------------------------------------------------------------------
 // CONFIG: Title templates — add new entries here as you think of more
@@ -207,7 +207,6 @@ Usage: npx tsx scripts/seed-signals.ts [options]
 Options:
   --month <1-12>   Month to seed (default: current month)
   --year  <number>  Year to seed (default: current year)
-  --clear           Delete all existing signals before seeding
 `);
 }
 
@@ -223,28 +222,19 @@ async function main() {
   console.log(`\nSeeding signals for ${monthName} ${year} (${totalDays} days)...`);
   if (clear) console.log("--clear flag set: will delete all existing signals first.\n");
 
-  const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
+  const dbUrl = process.env.DATABASE_URL;
 
-  if (!dbUrl.startsWith("file:")) {
-    console.error(
-      `ERROR: DATABASE_URL is set to a non-SQLite URL ("${dbUrl.slice(0, 30)}...").`
-    );
-    console.error("This script is only intended for local SQLite databases. Aborting.");
+  if (!dbUrl) {
+    console.error("ERROR: DATABASE_URL is not set. Aborting.");
     process.exit(1);
   }
 
-  console.log(`Using database: ${dbUrl}`);
+  console.log(`Using database: ${dbUrl.slice(0, 30)}...`);
 
-  const adapter = new PrismaBetterSqlite3({ url: dbUrl });
+  const adapter = new PrismaPg({ connectionString: dbUrl });
   const db = new PrismaClient({ adapter });
 
   try {
-    // Clear if requested
-    if (clear) {
-      const deleted = await db.signal.deleteMany();
-      console.log(`Deleted ${deleted.count} existing signal(s).`);
-    }
-
     // Build signal data
     type SignalInput = Parameters<typeof db.signal.create>[0]["data"];
     const signalInputs: SignalInput[] = [];
