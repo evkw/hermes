@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { NewSignalDialog } from "./new-signal-dialog";
 
 const navLinks = [
   { label: "Briefing", href: "/briefing" },
+  { label: "In Flight", href: "/inflight" },
   { label: "Signals", href: "/signals" },
   { label: "Settings", href: "/settings" },
 ];
@@ -46,12 +48,7 @@ export function TopNav() {
 
         <div className="flex items-center gap-4">
           {/* New Signal button */}
-          <Link
-            href="/signals/new"
-            className="bg-primary text-on-primary px-6 py-2 rounded-md font-medium text-sm transition-all opacity-80 hover:opacity-100 active:opacity-100 whitespace-nowrap"
-          >
-            New Signal
-          </Link>
+          <NewSignalDialog />
 
           {/* Mobile hamburger */}
           <button
