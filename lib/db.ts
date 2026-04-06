@@ -11,9 +11,10 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("Missing POSTGRES_PRISMA_URL or DATABASE_URL environment variable");
   }
+  const isLocalhost = connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
   const pool = new pg.Pool({
     connectionString,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    ssl: isLocalhost ? undefined : { rejectUnauthorized: false },
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
