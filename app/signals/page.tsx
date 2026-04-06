@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { SectionCard } from "@/components/ui/section-card";
 import { SignalsDataTable } from "./components/signals-data-table";
 
+export const dynamic = "force-dynamic";
+
 const PAGE_SIZE = 10;
 
 const SORTABLE_COLUMNS = new Set([

@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { RetroView } from "./components/retro-view";
 
+export const dynamic = "force-dynamic";
+
 export default async function RetroPage() {
   const signals = await db.signal.findMany({
     where: { status: "active" },

@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { CalendarView } from "./components/calendar-view";
 
+export const dynamic = "force-dynamic";
+
 export type DayCounts = {
   created: number;
   worked: number;

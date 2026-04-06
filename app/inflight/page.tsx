@@ -3,6 +3,8 @@ import { SignalCard } from "./components/signal-card";
 import { EmptyFocus } from "./components/empty-focus";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 import { SignalList } from "./components/signal-list";
 import { SectionCard } from "@/components/ui/section-card";
 
