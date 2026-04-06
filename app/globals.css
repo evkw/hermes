@@ -7,8 +7,8 @@
 @theme inline {
   --font-sans: var(--font-sans);
 
-  --color-background: #f9f9f9;
-  --color-surface: #f9f9f9;
+  --color-background: #f0f0f0;
+  --color-surface: #f0f0f0;
   --color-surface-container: #eeeeee;
   --color-surface-container-low: #f3f3f3;
   --color-surface-container-lowest: #ffffff;

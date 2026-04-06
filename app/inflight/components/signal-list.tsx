@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toggleFocusToday, resolveSignal } from "@/app/actions/signals";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
 
@@ -31,21 +32,21 @@ export function SignalList({ signals }: { signals: SignalListItem[] }) {
   return (
     <ul className="divide-y divide-outline-variant/40">
       {signals.map((signal) => (
-        <li key={signal.id} className="py-3.5 flex items-center gap-3">
+        <li key={signal.id} className="group py-3.5 flex items-center gap-3">
           <div className="w-2 flex justify-center shrink-0">
             <RiskDot riskLevel={signal.riskLevel} />
           </div>
 
-          <a href="#" className="flex-1 min-w-0">
+          <Link href={`/signals/${signal.id}/events`} className="flex-1 min-w-0">
             <span className="text-sm font-medium text-on-surface leading-snug truncate block">
               {signal.title}
             </span>
             {signal.lastWorkedLabel && (
               <span className="text-xs text-outline">{signal.lastWorkedLabel}</span>
             )}
-          </a>
+          </Link>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <form action={toggleFocusToday.bind(null, signal.id)}>
               <button
                 type="submit"

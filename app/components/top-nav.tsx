@@ -23,7 +23,7 @@ export function TopNav() {
   }
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl">
+    <nav className="fixed top-0 w-full z-50 bg-white shadow-md">
       <div className="flex justify-between items-center px-6 md:px-12 py-6 md:py-8 max-w-screen-2xl mx-auto">
         {/* Logo */}
         <Link href="/inflight" className="text-2xl font-semibold tracking-tighter text-on-surface">
@@ -77,7 +77,7 @@ export function TopNav() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-outline-variant/20 bg-background/95 backdrop-blur-xl">
+        <div className="md:hidden border-t border-outline-variant/20 bg-white">
           <div className="flex flex-col gap-1 px-6 py-4">
             {navLinks.map((link) => (
               <Link

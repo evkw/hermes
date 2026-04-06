@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toggleFocusToday, markWorkedToday, resolveSignal } from "@/app/actions/signals";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
 
@@ -34,11 +35,11 @@ export function SignalCard({
       <div>
         <div className="flex items-center gap-2">
           <RiskDot riskLevel={riskLevel} />
-          <a href="#" className="block min-w-0">
+          <Link href={`/signals/${id}/events`} className="block min-w-0">
             <h3 className="text-sm font-medium text-on-surface leading-snug truncate">
               {title}
             </h3>
-          </a>
+          </Link>
         </div>
 
         {description && (
