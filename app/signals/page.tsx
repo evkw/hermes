@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { SectionCard } from "@/components/ui/section-card";
 import { SignalsDataTable } from "./components/signals-data-table";
 
 const PAGE_SIZE = 10;
@@ -71,13 +72,15 @@ export default async function SignalsTablePage({
         </p>
       </div>
 
-      <SignalsDataTable
-        data={rows}
-        page={page}
-        totalPages={totalPages}
-        sort={sort}
-        order={order}
-      />
+      <SectionCard>
+        <SignalsDataTable
+          data={rows}
+          page={page}
+          totalPages={totalPages}
+          sort={sort}
+          order={order}
+        />
+      </SectionCard>
     </div>
   );
 }

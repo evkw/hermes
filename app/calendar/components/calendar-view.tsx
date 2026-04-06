@@ -50,13 +50,16 @@ export function CalendarView({
 
     const today = new Date();
     const todayKey = dayKey(today.getFullYear(), today.getMonth(), today.getDate());
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+    const defaultDay = isCurrentMonth ? today.getDate() : 1;
 
-    const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set([1]));
-    const [cursor, setCursor] = useState<number>(1);
+    const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set([defaultDay]));
+    const [cursor, setCursor] = useState<number>(defaultDay);
 
     useEffect(() => {
-        setSelectedDays(new Set([1]));
-        setCursor(1);
+        const d = (year === today.getFullYear() && month === today.getMonth()) ? today.getDate() : 1;
+        setSelectedDays(new Set([d]));
+        setCursor(d);
     }, [year, month]);
 
     const handleKeyDown = useCallback(

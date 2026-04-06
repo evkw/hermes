@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSignalWithEvents } from "@/app/actions/signals";
+import { SectionCard } from "@/components/ui/section-card";
 import { EventsDataTable } from "./components/events-data-table";
 
 export default async function SignalEventsPage({
@@ -23,8 +24,8 @@ export default async function SignalEventsPage({
   }));
 
   return (
-    <div>
-      <div className="mb-8">
+    <div className="space-y-6">
+      <SectionCard>
         <h1 className="text-4xl font-bold tracking-tight text-on-surface">
           {signal.title}
         </h1>
@@ -33,19 +34,11 @@ export default async function SignalEventsPage({
             {signal.description}
           </p>
         )}
-      </div>
+      </SectionCard>
 
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-on-surface">
-          All Events
-        </h2>
-        <p className="mt-1 text-sm text-secondary">
-          {signal.events.length} event{signal.events.length !== 1 ? "s" : ""}{" "}
-          total
-        </p>
-      </div>
-
-      <EventsDataTable data={rows} />
+      <SectionCard title={`All Events — ${signal.events.length} event${signal.events.length !== 1 ? "s" : ""}`}>
+        <EventsDataTable data={rows} />
+      </SectionCard>
     </div>
   );
 }

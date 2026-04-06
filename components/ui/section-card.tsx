@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 type SectionCardProps = {
-  title: string;
+  title?: string;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
