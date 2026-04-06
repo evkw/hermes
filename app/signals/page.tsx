@@ -3,6 +3,23 @@ import { SignalsDataTable } from "./components/signals-data-table";
 
 const PAGE_SIZE = 10;
 
+const SORTABLE_COLUMNS = new Set([
+  "riskLevel",
+  "title",
+  "status",
+  "focusedOnDate",
+  "lastWorkedAt",
+  "createdAt",
+  "eventCount",
+]);
+
+function buildOrderBy(sort: string, order: "asc" | "desc") {
+  if (sort === "eventCount") {
+    return { events: { _count: order } };
+  }
+  return { [sort]: order };
+}
+
 export default async function SignalsTablePage({
   searchParams,
 }: {
@@ -12,9 +29,14 @@ export default async function SignalsTablePage({
   const pageParam = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
+  const sortParam = typeof params.sort === "string" ? params.sort : "createdAt";
+  const orderParam = typeof params.order === "string" ? params.order : "desc";
+  const sort = SORTABLE_COLUMNS.has(sortParam) ? sortParam : "createdAt";
+  const order: "asc" | "desc" = orderParam === "asc" ? "asc" : "desc";
+
   const [signals, totalCount] = await Promise.all([
     db.signal.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: buildOrderBy(sort, order),
       include: { _count: { select: { events: true } } },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -53,6 +75,8 @@ export default async function SignalsTablePage({
         data={rows}
         page={page}
         totalPages={totalPages}
+        sort={sort}
+        order={order}
       />
     </div>
   );

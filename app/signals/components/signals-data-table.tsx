@@ -4,7 +4,6 @@ import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   getFilteredRowModel,
   type SortingState,
   useReactTable,
@@ -177,17 +176,30 @@ const columns: ColumnDef<SignalRow>[] = [
   },
 ];
 
+function buildHref(params: { page?: number; sort?: string; order?: string }) {
+  const sp = new URLSearchParams();
+  if (params.page && params.page > 1) sp.set("page", String(params.page));
+  if (params.sort && params.sort !== "createdAt") sp.set("sort", params.sort);
+  if (params.order && params.order !== "desc") sp.set("order", params.order);
+  const qs = sp.toString();
+  return `/signals${qs ? `?${qs}` : ""}`;
+}
+
 export function SignalsDataTable({
   data,
   page,
   totalPages,
+  sort,
+  order,
 }: {
   data: SignalRow[];
   page: number;
   totalPages: number;
+  sort: string;
+  order: "asc" | "desc";
 }) {
   const router = useRouter();
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const sorting: SortingState = [{ id: sort, desc: order === "desc" }];
   const [globalFilter, setGlobalFilter] = useState("");
 
   useEffect(() => {
@@ -199,22 +211,36 @@ export function SignalsDataTable({
         return;
       }
       if (e.key === "ArrowLeft" && page > 1) {
-        router.push(`/signals?page=${page - 1}`);
+        router.push(buildHref({ page: page - 1, sort, order }));
       } else if (e.key === "ArrowRight" && page < totalPages) {
-        router.push(`/signals?page=${page + 1}`);
+        router.push(buildHref({ page: page + 1, sort, order }));
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [page, totalPages, router]);
+  }, [page, totalPages, sort, order, router]);
+
+  const handleSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      if (next.length === 0) {
+        router.push(buildHref({ page: 1 }));
+      } else {
+        const col = next[0];
+        router.push(
+          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc" })
+        );
+      }
+    },
+    [sorting, router]
+  );
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
     state: { sorting, globalFilter },
   });
@@ -298,14 +324,14 @@ export function SignalsDataTable({
           </p>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Link href={`/signals?page=${page - 1}`}>
+              <Link href={buildHref({ page: page - 1, sort, order })}>
                 <Button variant="outline" size="sm">Previous</Button>
               </Link>
             ) : (
               <Button variant="outline" size="sm" disabled>Previous</Button>
             )}
             {page < totalPages ? (
-              <Link href={`/signals?page=${page + 1}`}>
+              <Link href={buildHref({ page: page + 1, sort, order })}>
                 <Button variant="outline" size="sm">Next</Button>
               </Link>
             ) : (
