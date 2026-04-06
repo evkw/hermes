@@ -164,6 +164,37 @@ export async function resolveSignal(signalId: string): Promise<void> {
   revalidatePath("/signals");
 }
 
+const RISK_ESCALATION: Record<string, string> = {
+  active: "at_risk",
+  at_risk: "needs_attention",
+  needs_attention: "needs_attention",
+};
+
+export async function increaseRisk(signalId: string): Promise<void> {
+  const signal = await db.signal.findUnique({ where: { id: signalId } });
+  if (!signal) return;
+
+  const nextRisk = RISK_ESCALATION[signal.riskLevel] ?? signal.riskLevel;
+
+  await db.$transaction([
+    db.signal.update({
+      where: { id: signalId },
+      data: { riskLevel: nextRisk as "active" | "at_risk" | "needs_attention" },
+    }),
+    db.signalEvent.create({
+      data: {
+        signalId,
+        eventType: "risk_increased",
+        note: `Risk increased to ${nextRisk.replace("_", " ")}`,
+      },
+    }),
+  ]);
+
+  revalidatePath("/inflight");
+  revalidatePath("/signals");
+  revalidatePath("/retro");
+}
+
 export async function getSignalWithEvents(signalId: string) {
   const signal = await db.signal.findUnique({
     where: { id: signalId },

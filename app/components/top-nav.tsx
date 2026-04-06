@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NewSignalDialog } from "./new-signal-dialog";
+import { MoreMenu } from "./more-menu";
 
 const navLinks = [
-  { label: "Briefing", href: "/briefing" },
+  // { label: "Briefing", href: "/briefing" },
   { label: "In Flight", href: "/inflight" },
   { label: "Signals", href: "/signals" },
-  { label: "Settings", href: "/settings" },
+  // { label: "Settings", href: "/settings" },
 ];
 
 export function TopNav() {
@@ -25,7 +26,7 @@ export function TopNav() {
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl">
       <div className="flex justify-between items-center px-6 md:px-12 py-6 md:py-8 max-w-screen-2xl mx-auto">
         {/* Logo */}
-        <Link href="/" className="text-2xl font-semibold tracking-tighter text-on-surface">
+        <Link href="/inflight" className="text-2xl font-semibold tracking-tighter text-on-surface">
           Hermes
         </Link>
 
@@ -49,7 +50,7 @@ export function TopNav() {
         <div className="flex items-center gap-4">
           {/* New Signal button */}
           <NewSignalDialog />
-
+          <MoreMenu />
           {/* Mobile hamburger */}
           <button
             type="button"
@@ -59,19 +60,16 @@ export function TopNav() {
             aria-expanded={mobileOpen}
           >
             <span
-              className={`block w-5 h-0.5 bg-on-surface transition-transform duration-200 ${
-                mobileOpen ? "translate-y-2 rotate-45" : ""
-              }`}
+              className={`block w-5 h-0.5 bg-on-surface transition-transform duration-200 ${mobileOpen ? "translate-y-2 rotate-45" : ""
+                }`}
             />
             <span
-              className={`block w-5 h-0.5 bg-on-surface transition-opacity duration-200 ${
-                mobileOpen ? "opacity-0" : ""
-              }`}
+              className={`block w-5 h-0.5 bg-on-surface transition-opacity duration-200 ${mobileOpen ? "opacity-0" : ""
+                }`}
             />
             <span
-              className={`block w-5 h-0.5 bg-on-surface transition-transform duration-200 ${
-                mobileOpen ? "-translate-y-2 -rotate-45" : ""
-              }`}
+              className={`block w-5 h-0.5 bg-on-surface transition-transform duration-200 ${mobileOpen ? "-translate-y-2 -rotate-45" : ""
+                }`}
             />
           </button>
         </div>
@@ -86,11 +84,10 @@ export function TopNav() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className={`py-3 text-base tracking-tight ${
-                  isActive(link.href)
+                className={`py-3 text-base tracking-tight ${isActive(link.href)
                     ? "text-on-surface font-medium"
                     : "text-secondary"
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>

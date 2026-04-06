@@ -30,83 +30,79 @@ export function SignalCard({
   isFocusedToday,
 }: SignalCardProps) {
   return (
-    <div className="py-5 group">
-      <div className="flex items-start gap-3">
-        <div className="pt-1.5">
+    <div className="group flex flex-col justify-between rounded-xl border border-outline-variant/40 p-5 transition-colors hover:border-outline-variant">
+      <div>
+        <div className="flex items-center gap-2">
           <RiskDot riskLevel={riskLevel} />
-          {riskLevel === "active" && <span className="inline-block size-2" />}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <a href="#" className="block">
-            <h3 className="text-base font-medium text-on-surface leading-snug">
+          <a href="#" className="block min-w-0">
+            <h3 className="text-sm font-medium text-on-surface leading-snug truncate">
               {title}
             </h3>
           </a>
-
-          {description && (
-            <p className="mt-1 text-sm text-secondary line-clamp-2 leading-relaxed">
-              {description}
-            </p>
-          )}
-
-          {lastWorkedLabel && (
-            <p className="mt-1.5 text-xs text-outline">
-              {lastWorkedLabel}
-            </p>
-          )}
-
-          {/* Actions */}
-          <div className="mt-3 flex items-center gap-4">
-            {isFocusedToday ? (
-              <>
-                <form action={markWorkedToday.bind(null, id)}>
-                  <button
-                    type="submit"
-                    className="text-sm font-medium text-on-surface hover:text-on-surface/70 transition-colors"
-                  >
-                    Mark worked today
-                  </button>
-                </form>
-                <form action={toggleFocusToday.bind(null, id)}>
-                  <button
-                    type="submit"
-                    className="text-xs text-outline hover:text-secondary transition-colors"
-                  >
-                    Remove focus
-                  </button>
-                </form>
-                <form action={resolveSignal.bind(null, id)}>
-                  <button
-                    type="submit"
-                    className="text-xs text-outline hover:text-secondary transition-colors"
-                  >
-                    Resolve
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <form action={toggleFocusToday.bind(null, id)}>
-                  <button
-                    type="submit"
-                    className="text-sm font-medium text-on-surface hover:text-on-surface/70 transition-colors"
-                  >
-                    Focus today
-                  </button>
-                </form>
-                <form action={resolveSignal.bind(null, id)}>
-                  <button
-                    type="submit"
-                    className="text-xs text-outline hover:text-secondary transition-colors"
-                  >
-                    Resolve
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
         </div>
+
+        {description && (
+          <p className="mt-2 text-sm text-secondary line-clamp-2 leading-relaxed">
+            {description}
+          </p>
+        )}
+
+        {lastWorkedLabel && (
+          <p className="mt-2 text-xs text-outline">
+            {lastWorkedLabel}
+          </p>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="mt-4 flex items-center gap-3 border-t border-outline-variant/30 pt-3">
+        {isFocusedToday ? (
+          <>
+            <form action={markWorkedToday.bind(null, id)}>
+              <button
+                type="submit"
+                className="text-xs font-medium text-on-surface hover:text-on-surface/70 transition-colors"
+              >
+                Mark worked
+              </button>
+            </form>
+            <form action={toggleFocusToday.bind(null, id)}>
+              <button
+                type="submit"
+                className="text-xs text-outline hover:text-secondary transition-colors"
+              >
+                Unfocus
+              </button>
+            </form>
+            <form action={resolveSignal.bind(null, id)}>
+              <button
+                type="submit"
+                className="text-xs text-outline hover:text-secondary transition-colors"
+              >
+                Resolve
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <form action={toggleFocusToday.bind(null, id)}>
+              <button
+                type="submit"
+                className="text-xs font-medium text-on-surface hover:text-on-surface/70 transition-colors"
+              >
+                Focus today
+              </button>
+            </form>
+            <form action={resolveSignal.bind(null, id)}>
+              <button
+                type="submit"
+                className="text-xs text-outline hover:text-secondary transition-colors"
+              >
+                Resolve
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

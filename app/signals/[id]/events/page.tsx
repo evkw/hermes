@@ -25,11 +25,11 @@ export default async function SignalEventsPage({
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight text-on-surface truncate max-w-3xl">
+        <h1 className="text-4xl font-bold tracking-tight text-on-surface">
           {signal.title}
         </h1>
         {signal.description && (
-          <p className="mt-2 text-sm text-secondary truncate max-w-3xl">
+          <p className="mt-2 text-sm text-secondary">
             {signal.description}
           </p>
         )}

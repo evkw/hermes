@@ -9,8 +9,9 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useCallback, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -176,10 +177,36 @@ const columns: ColumnDef<SignalRow>[] = [
   },
 ];
 
-export function SignalsDataTable({ data }: { data: SignalRow[] }) {
+export function SignalsDataTable({
+  data,
+  page,
+  totalPages,
+}: {
+  data: SignalRow[];
+  page: number;
+  totalPages: number;
+}) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft" && page > 1) {
+        router.push(`/signals?page=${page - 1}`);
+      } else if (e.key === "ArrowRight" && page < totalPages) {
+        router.push(`/signals?page=${page + 1}`);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [page, totalPages, router]);
 
   const table = useReactTable({
     data,
@@ -263,6 +290,30 @@ export function SignalsDataTable({ data }: { data: SignalRow[] }) {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-secondary">
+            Page {page} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            {page > 1 ? (
+              <Link href={`/signals?page=${page - 1}`}>
+                <Button variant="outline" size="sm">Previous</Button>
+              </Link>
+            ) : (
+              <Button variant="outline" size="sm" disabled>Previous</Button>
+            )}
+            {page < totalPages ? (
+              <Link href={`/signals?page=${page + 1}`}>
+                <Button variant="outline" size="sm">Next</Button>
+              </Link>
+            ) : (
+              <Button variant="outline" size="sm" disabled>Next</Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

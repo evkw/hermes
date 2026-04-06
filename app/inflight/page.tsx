@@ -1,7 +1,9 @@
 import { db } from "@/lib/db";
 import { SignalCard } from "./components/signal-card";
-import { SignalList } from "./components/signal-list";
+import { EmptyFocus } from "./components/empty-focus";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
+import Link from "next/link";
+import { SignalList } from "./components/signal-list";
 
 function startOfTodayUTC(): Date {
   const now = new Date();
@@ -66,14 +68,23 @@ export default async function SignalsPage() {
     )
   );
 
-  const everythingElse = sortByRiskThenDate(
-    activeSignals.filter(
+  const everythingElse = activeSignals
+    .filter(
       (s) =>
         !s.focusedOnDate ||
         s.focusedOnDate.getTime() < today.getTime() ||
         s.focusedOnDate.getTime() > todayEnd.getTime()
     )
-  );
+    .sort((a, b) => {
+      const riskDiff = RISK_ORDER[a.riskLevel] - RISK_ORDER[b.riskLevel];
+      if (riskDiff !== 0) return riskDiff;
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    })
+    .slice(0, 10);
+
+  const MAX_DISPLAY = 6;
+  const visibleFocused = focusedToday.slice(0, MAX_DISPLAY);
+  const totalActive = activeSignals.length;
 
   return (
     <div>
@@ -87,17 +98,15 @@ export default async function SignalsPage() {
 
       {/* Focused Today */}
       <section className="mb-12">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-outline mb-4">
-          Focused Today
+        <h2 className="text-xs font-medium uppercase tracking-wider text-outline mb-5">
+          Today&apos;s Focus
         </h2>
 
-        {focusedToday.length === 0 ? (
-          <p className="text-sm text-outline py-6">
-            No signals focused for today
-          </p>
+        {visibleFocused.length === 0 ? (
+          <EmptyFocus />
         ) : (
-          <div className="divide-y divide-outline-variant/40">
-            {focusedToday.map((signal) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visibleFocused.map((signal) => (
               <SignalCard
                 key={signal.id}
                 id={signal.id}
@@ -112,10 +121,20 @@ export default async function SignalsPage() {
         )}
       </section>
 
-      {/* Everything Else */}
+      {/* Overflow link */}
+      <section className="text-center">
+        <Link
+          href="/signals"
+          className="text-sm font-medium text-secondary hover:text-on-surface transition-colors"
+        >
+          View {focusedToday.length} &nbsp; more focused signals &rarr;
+        </Link>
+      </section>
+
+      {/* Some unfocused */}
       <section>
         <h2 className="text-xs font-medium uppercase tracking-wider text-outline mb-4">
-          Everything Else
+          Unfocused but active items
         </h2>
 
         <SignalList

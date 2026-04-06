@@ -1,11 +1,28 @@
 import { db } from "@/lib/db";
 import { SignalsDataTable } from "./components/signals-data-table";
 
-export default async function SignalsTablePage() {
-  const signals = await db.signal.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { events: true } } },
-  });
+const PAGE_SIZE = 10;
+
+export default async function SignalsTablePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const pageParam = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+
+  const [signals, totalCount] = await Promise.all([
+    db.signal.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { events: true } } },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    db.signal.count(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const rows = signals.map((s) => ({
     id: s.id,
@@ -28,11 +45,15 @@ export default async function SignalsTablePage() {
           All Signals
         </h1>
         <p className="mt-1 text-sm text-secondary">
-          {signals.length} signal{signals.length !== 1 ? "s" : ""} total
+          {totalCount} signal{totalCount !== 1 ? "s" : ""} total
         </p>
       </div>
 
-      <SignalsDataTable data={rows} />
+      <SignalsDataTable
+        data={rows}
+        page={page}
+        totalPages={totalPages}
+      />
     </div>
   );
 }

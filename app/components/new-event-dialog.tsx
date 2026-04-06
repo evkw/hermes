@@ -48,7 +48,7 @@ export function NewEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<span />}>{children}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={<span />}>{children}</DialogTrigger>
 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
