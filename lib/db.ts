@@ -7,21 +7,30 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  const connectionString = process.env.POSTGRES_PRISMA_URL ?? process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error("Missing POSTGRES_PRISMA_URL or DATABASE_URL environment variable");
+    throw new Error("Missing DATABASE_URL environment variable");
   }
-  const isLocalhost = connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+  const needsSsl = !connectionString.includes("localhost") && !connectionString.includes("127.0.0.1") && !connectionString.includes("db-prod");
   const pool = new pg.Pool({
     connectionString,
-    ssl: isLocalhost ? undefined : { rejectUnauthorized: false },
+    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
 
-export const db = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
+function getDb(): PrismaClient {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma;
+  const client = createPrismaClient();
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+  return client;
 }
+
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return (getDb() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});

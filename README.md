@@ -58,6 +58,70 @@ npx tsx --require dotenv/config scripts/seed-signals.ts --month 3 --year 2026
 
 Each day in the target month gets 1–6 signals with randomized titles, descriptions, risk levels, and a mix of active/resolved statuses. Resolved signals include a full event trail (created → resolved). To add more title patterns, edit the `TITLE_TEMPLATES` array at the top of `scripts/seed-signals.ts`.
 
+## Self-Hosting with Docker
+
+The recommended way to run Hermes is via Docker Compose, which bundles the app and a PostgreSQL database together.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+
+### Start the app
+
+```bash
+docker compose up --build
+```
+
+This will:
+
+1. Start a PostgreSQL 17 database (data persisted in a Docker volume)
+2. Run Prisma migrations automatically
+3. Build and start the Next.js app
+
+The app will be available at [http://localhost:3001](http://localhost:3001).
+
+### Ports
+
+| Service | Port |
+|---------|------|
+| App | `3001` |
+| Prod database | `5433` (exposed for external access) |
+
+### Seeding the production database
+
+To seed the Docker-hosted production database:
+
+```bash
+# Create a .env.production.local with the prod connection string
+# DATABASE_URL="postgresql://postgres:hermes-prod@localhost:5433/hermes"
+
+npx tsx --require dotenv/config scripts/seed-signals.ts --month 4 --year 2026
+```
+
+### Rebuilding
+
+After code changes, rebuild with:
+
+```bash
+docker compose up --build
+```
+
+### Stopping
+
+```bash
+docker compose down
+```
+
+Database data is stored in the `hermes-pgdata` volume and persists across restarts. To delete all data:
+
+```bash
+docker compose down -v
+```
+
+### Development database
+
+A separate local PostgreSQL container is used for development (port `5432`). See `.env` for the dev connection string. The Docker Compose stack uses its own isolated database so dev and prod data stay separate.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
