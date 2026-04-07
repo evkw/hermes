@@ -25,8 +25,8 @@ export type DayDetail = {
 export type MonthData = Record<string, DayDetail>;
 
 async function getMonthData(year: number, month: number): Promise<MonthData> {
-  const start = new Date(Date.UTC(year, month, 1));
-  const end = new Date(Date.UTC(year, month + 1, 1));
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 1);
 
   const [signals, events] = await Promise.all([
     db.signal.findMany({
@@ -47,7 +47,7 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
   const data: MonthData = {};
 
   function getKey(date: Date): string {
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   }
 
   function ensure(key: string): DayDetail {
