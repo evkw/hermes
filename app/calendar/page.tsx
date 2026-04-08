@@ -15,6 +15,7 @@ export type DaySignalActivity = {
   created: boolean;
   worked: boolean;
   resolved: boolean;
+  primarySourceUrl?: string;
 };
 
 export type DayDetail = {
@@ -33,14 +34,14 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
       where: {
         createdAt: { gte: start, lt: end },
       },
-      select: { id: true, title: true, createdAt: true },
+      select: { id: true, title: true, createdAt: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } } },
     }),
     db.signalEvent.findMany({
       where: {
         createdAt: { gte: start, lt: end },
         eventType: { in: ["worked_today", "resolved"] },
       },
-      select: { eventType: true, createdAt: true, signalId: true, signal: { select: { title: true } } },
+      select: { eventType: true, createdAt: true, signalId: true, signal: { select: { title: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } } } } },
     }),
   ]);
 
@@ -55,11 +56,15 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     return data[key];
   }
 
-  function ensureSignal(day: DayDetail, signalId: string, title: string): DaySignalActivity {
+  function ensureSignal(day: DayDetail, signalId: string, title: string, sources?: { url: string | null }[]): DaySignalActivity {
     let entry = day.signals.find((s) => s.signalId === signalId);
     if (!entry) {
       entry = { signalId, title, created: false, worked: false, resolved: false };
       day.signals.push(entry);
+    }
+    if (!entry.primarySourceUrl && sources) {
+      const firstUrl = sources.find((s) => s.url)?.url;
+      if (firstUrl) entry.primarySourceUrl = firstUrl;
     }
     return entry;
   }
@@ -68,13 +73,13 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     const key = getKey(s.createdAt);
     const day = ensure(key);
     day.counts.created++;
-    ensureSignal(day, s.id, s.title).created = true;
+    ensureSignal(day, s.id, s.title, s.sources).created = true;
   }
 
   for (const e of events) {
     const key = getKey(e.createdAt);
     const day = ensure(key);
-    const entry = ensureSignal(day, e.signalId, e.signal.title);
+    const entry = ensureSignal(day, e.signalId, e.signal.title, e.signal.sources);
     if (e.eventType === "worked_today") {
       day.counts.worked++;
       entry.worked = true;

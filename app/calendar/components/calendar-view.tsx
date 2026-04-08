@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import type { MonthData, DaySignalActivity } from "../page";
 import { SectionCard } from "@/components/ui/section-card";
+import { ExternalLink } from "lucide-react";
 
 const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -222,12 +223,13 @@ const MONTH_SHORT = [
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-function summarizeSignals(signals: DaySignalActivity[]): { label: string; title: string }[] {
+function summarizeSignals(signals: DaySignalActivity[]): { label: string; title: string; url?: string }[] {
     return signals.map((s) => {
-        if (s.resolved) return { label: "Resolved", title: s.title };
-        if (s.created) return { label: "Started", title: s.title };
-        if (s.worked) return { label: "Progressed", title: s.title };
-        return { label: "Touched", title: s.title };
+        const base = { title: s.title, url: s.primarySourceUrl };
+        if (s.resolved) return { label: "Resolved", ...base };
+        if (s.created) return { label: "Started", ...base };
+        if (s.worked) return { label: "Progressed", ...base };
+        return { label: "Touched", ...base };
     });
 }
 
@@ -260,16 +262,19 @@ function DaySummary({
         : `${MONTH_SHORT[month]} ${sortedDays[0]}–${sortedDays[sortedDays.length - 1]}, ${year}`;
 
     function buildSummaryText(): string {
+        function formatItem(i: { label: string; title: string; url?: string }): string {
+            return i.url ? `• ${i.label} [${i.title}](${i.url})` : `• ${i.label} ${i.title}`;
+        }
         if (isSingleDay) {
             const items = dayEntries[0].items;
             if (items.length === 0) return "No activity";
-            return items.map((i) => `• ${i.label} ${i.title}`).join("\n");
+            return items.map(formatItem).join("\n");
         }
         return dayEntries
             .map((d) => {
-                const header = d.dayOfWeek;
+                const header = `### ${d.dayOfWeek}`;
                 if (d.items.length === 0) return header;
-                const bullets = d.items.map((i) => `• ${i.label} ${i.title}`).join("\n");
+                const bullets = d.items.map(formatItem).join("\n");
                 return `${header}\n${bullets}`;
             })
             .join("\n\n");
@@ -299,7 +304,14 @@ function DaySummary({
                         {dayEntries[0].items.map((item, i) => (
                             <li key={i} className="text-sm text-on-surface">
                                 <span className="text-secondary">•</span> {item.label}{" "}
-                                <span className="font-medium">{item.title}</span>
+                                {item.url ? (
+                                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline inline-flex items-center gap-1">
+                                        {item.title}
+                                        <ExternalLink className="size-3 inline shrink-0" />
+                                    </a>
+                                ) : (
+                                    <span className="font-medium">{item.title}</span>
+                                )}
                             </li>
                         ))}
                     </ul>
@@ -316,7 +328,14 @@ function DaySummary({
                                     {d.items.map((item, i) => (
                                         <li key={i} className="text-sm text-on-surface">
                                             <span className="text-secondary">•</span> {item.label}{" "}
-                                            <span className="font-medium">{item.title}</span>
+                                            {item.url ? (
+                                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline inline-flex items-center gap-1">
+                                                    {item.title}
+                                                    <ExternalLink className="size-3 inline shrink-0" />
+                                                </a>
+                                            ) : (
+                                                <span className="font-medium">{item.title}</span>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
