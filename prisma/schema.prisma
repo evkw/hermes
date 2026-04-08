@@ -57,6 +57,7 @@ model Signal {
 
   events  SignalEvent[]
   sources SignalSource[]
+  summaryExclusions SummaryExclusion[]
 
   @@index([status])
   @@index([riskLevel])
@@ -94,4 +95,17 @@ model SignalSource {
 
   @@index([signalId])
   @@index([type])
+}
+
+model SummaryExclusion {
+  id        String   @id @default(cuid())
+  signalId  String
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@unique([signalId, date])
+  @@index([signalId])
+  @@index([date])
 }

@@ -422,3 +422,30 @@ export async function deleteSignalSource(
   revalidatePath("/signals");
   return { success: true };
 }
+
+// --- Summary exclusion ---
+
+export async function toggleSummaryExclusion(
+  _prevState: unknown,
+  formData: FormData
+): Promise<void> {
+  const signalId = formData.get("signalId");
+  const dateStr = formData.get("date");
+
+  if (typeof signalId !== "string" || signalId.trim().length === 0) return;
+  if (typeof dateStr !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+
+  const date = new Date(dateStr + "T00:00:00.000Z");
+
+  const existing = await db.summaryExclusion.findUnique({
+    where: { signalId_date: { signalId, date } },
+  });
+
+  if (existing) {
+    await db.summaryExclusion.delete({ where: { id: existing.id } });
+  } else {
+    await db.summaryExclusion.create({ data: { signalId, date } });
+  }
+
+  revalidatePath("/calendar");
+}

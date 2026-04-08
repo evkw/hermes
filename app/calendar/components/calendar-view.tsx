@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { MonthData, DaySignalActivity } from "../page";
 import { SectionCard } from "@/components/ui/section-card";
 import { ExternalLink } from "lucide-react";
+import { toggleSummaryExclusion } from "@/app/actions/signals";
 
 const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -223,9 +224,11 @@ const MONTH_SHORT = [
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-function summarizeSignals(signals: DaySignalActivity[]): { label: string; title: string; url?: string }[] {
+type SummaryItem = { signalId: string; label: string; title: string; url?: string; excludedFromSummary: boolean };
+
+function summarizeSignals(signals: DaySignalActivity[]): SummaryItem[] {
     return signals.map((s) => {
-        const base = { title: s.title, url: s.primarySourceUrl };
+        const base = { signalId: s.signalId, title: s.title, url: s.primarySourceUrl, excludedFromSummary: s.excludedFromSummary };
         if (s.resolved) return { label: "Resolved", ...base };
         if (s.created) return { label: "Started", ...base };
         if (s.worked) return { label: "Progressed", ...base };
@@ -251,10 +254,10 @@ function DaySummary({
         const dayOfWeek = DAY_OF_WEEK[date.getDay()];
         const signals = data[dayKey(year, month, day)]?.signals ?? [];
         const items = summarizeSignals(signals);
-        return { day, dayOfWeek, items };
+        return { day, dayOfWeek, items, dateKey: dayKey(year, month, day) };
     });
 
-    const hasAnyItems = dayEntries.some((d) => d.items.length > 0);
+    const hasAnyIncludedItems = dayEntries.some((d) => d.items.some((i) => !i.excludedFromSummary));
     const isSingleDay = sortedDays.length === 1;
 
     const titleLabel = isSingleDay
@@ -262,19 +265,20 @@ function DaySummary({
         : `${MONTH_SHORT[month]} ${sortedDays[0]}–${sortedDays[sortedDays.length - 1]}, ${year}`;
 
     function buildSummaryText(): string {
-        function formatItem(i: { label: string; title: string; url?: string }): string {
+        function formatItem(i: SummaryItem): string {
             return i.url ? `• ${i.label} [${i.title}](${i.url})` : `• ${i.label} ${i.title}`;
         }
         if (isSingleDay) {
-            const items = dayEntries[0].items;
-            if (items.length === 0) return "No activity";
-            return items.map(formatItem).join("\n");
+            const included = dayEntries[0].items.filter((i) => !i.excludedFromSummary);
+            if (included.length === 0) return "No activity";
+            return included.map(formatItem).join("\n");
         }
         return dayEntries
             .map((d) => {
                 const header = `### ${d.dayOfWeek}`;
-                if (d.items.length === 0) return header;
-                const bullets = d.items.map(formatItem).join("\n");
+                const included = d.items.filter((i) => !i.excludedFromSummary);
+                if (included.length === 0) return header;
+                const bullets = included.map(formatItem).join("\n");
                 return `${header}\n${bullets}`;
             })
             .join("\n\n");
@@ -284,7 +288,7 @@ function DaySummary({
         <SectionCard
             title={titleLabel}
             actions={
-                hasAnyItems ? (
+                hasAnyIncludedItems ? (
                     <button
                         type="button"
                         onClick={() => navigator.clipboard.writeText(buildSummaryText())}
@@ -302,16 +306,25 @@ function DaySummary({
                 ) : (
                     <ul className="space-y-1.5">
                         {dayEntries[0].items.map((item, i) => (
-                            <li key={i} className="text-sm text-on-surface">
-                                <span className="text-secondary">•</span> {item.label}{" "}
-                                {item.url ? (
-                                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline inline-flex items-center gap-1">
-                                        {item.title}
-                                        <ExternalLink className="size-3 inline shrink-0" />
-                                    </a>
-                                ) : (
-                                    <span className="font-medium">{item.title}</span>
-                                )}
+                            <li key={i} className={`text-sm text-on-surface flex items-center gap-2${item.excludedFromSummary ? " opacity-40" : ""}`}>
+                                <span className="flex-1">
+                                    <span className="text-secondary">•</span> {item.label}{" "}
+                                    {item.url ? (
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline inline-flex items-center gap-1">
+                                            {item.title}
+                                            <ExternalLink className="size-3 inline shrink-0" />
+                                        </a>
+                                    ) : (
+                                        <span className="font-medium">{item.title}</span>
+                                    )}
+                                </span>
+                                <form action={toggleSummaryExclusion.bind(null, null)}>
+                                    <input type="hidden" name="signalId" value={item.signalId} />
+                                    <input type="hidden" name="date" value={dayEntries[0].dateKey} />
+                                    <button type="submit" className="text-xs text-outline hover:text-secondary transition-colors shrink-0">
+                                        {item.excludedFromSummary ? "Unhide" : "Hide"}
+                                    </button>
+                                </form>
                             </li>
                         ))}
                     </ul>
@@ -326,16 +339,25 @@ function DaySummary({
                             ) : (
                                 <ul className="space-y-1 ml-2">
                                     {d.items.map((item, i) => (
-                                        <li key={i} className="text-sm text-on-surface">
-                                            <span className="text-secondary">•</span> {item.label}{" "}
-                                            {item.url ? (
-                                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline inline-flex items-center gap-1">
-                                                    {item.title}
-                                                    <ExternalLink className="size-3 inline shrink-0" />
-                                                </a>
-                                            ) : (
-                                                <span className="font-medium">{item.title}</span>
-                                            )}
+                                        <li key={i} className={`text-sm text-on-surface flex items-center gap-2${item.excludedFromSummary ? " opacity-40" : ""}`}>
+                                            <span className="flex-1">
+                                                <span className="text-secondary">•</span> {item.label}{" "}
+                                                {item.url ? (
+                                                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline inline-flex items-center gap-1">
+                                                        {item.title}
+                                                        <ExternalLink className="size-3 inline shrink-0" />
+                                                    </a>
+                                                ) : (
+                                                    <span className="font-medium">{item.title}</span>
+                                                )}
+                                            </span>
+                                            <form action={toggleSummaryExclusion.bind(null, null)}>
+                                                <input type="hidden" name="signalId" value={item.signalId} />
+                                                <input type="hidden" name="date" value={d.dateKey} />
+                                                <button type="submit" className="text-xs text-outline hover:text-secondary transition-colors shrink-0">
+                                                    {item.excludedFromSummary ? "Unhide" : "Hide"}
+                                                </button>
+                                            </form>
                                         </li>
                                     ))}
                                 </ul>

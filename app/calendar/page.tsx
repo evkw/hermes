@@ -16,6 +16,7 @@ export type DaySignalActivity = {
   worked: boolean;
   resolved: boolean;
   primarySourceUrl?: string;
+  excludedFromSummary: boolean;
 };
 
 export type DayDetail = {
@@ -29,7 +30,7 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 1);
 
-  const [signals, events] = await Promise.all([
+  const [signals, events, exclusions] = await Promise.all([
     db.signal.findMany({
       where: {
         createdAt: { gte: start, lt: end },
@@ -43,7 +44,18 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
       },
       select: { eventType: true, createdAt: true, signalId: true, signal: { select: { title: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } } } } },
     }),
+    db.summaryExclusion.findMany({
+      where: { date: { gte: start, lt: end } },
+      select: { signalId: true, date: true },
+    }),
   ]);
+
+  const excludedKeys = new Set(
+    exclusions.map((ex) => {
+      const d = ex.date;
+      return `${ex.signalId}:${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    })
+  );
 
   const data: MonthData = {};
 
@@ -59,7 +71,7 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
   function ensureSignal(day: DayDetail, signalId: string, title: string, sources?: { url: string | null }[]): DaySignalActivity {
     let entry = day.signals.find((s) => s.signalId === signalId);
     if (!entry) {
-      entry = { signalId, title, created: false, worked: false, resolved: false };
+      entry = { signalId, title, created: false, worked: false, resolved: false, excludedFromSummary: false };
       day.signals.push(entry);
     }
     if (!entry.primarySourceUrl && sources) {
@@ -87,6 +99,14 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     if (e.eventType === "resolved") {
       day.counts.resolved++;
       entry.resolved = true;
+    }
+  }
+
+  for (const key of Object.keys(data)) {
+    for (const signal of data[key].signals) {
+      if (excludedKeys.has(`${signal.signalId}:${key}`)) {
+        signal.excludedFromSummary = true;
+      }
     }
   }
 
