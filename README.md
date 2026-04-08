@@ -98,13 +98,15 @@ To seed the Docker-hosted production database:
 npx tsx --require dotenv/config scripts/seed-signals.ts --month 4 --year 2026
 ```
 
-### Rebuilding
+### Updating
 
-After code changes, rebuild with:
+After code or schema changes, rebuild and restart with a single command:
 
 ```bash
 docker compose up --build
 ```
+
+This will rebuild the app image, apply any new Prisma migrations, and restart the services. No separate `docker build` step is needed.
 
 ### Stopping
 

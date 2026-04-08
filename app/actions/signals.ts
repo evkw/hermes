@@ -48,30 +48,28 @@ export async function createSignal(
   if (trimmedUrl) {
     const { type, label } = detectSource(trimmedUrl);
 
-    await db.$transaction(async (tx) => {
-      const signal = await tx.signal.create({
-        data: {
-          title: trimmedTitle,
-          description: trimmedDescription,
-        },
-      });
+    const signal = await db.signal.create({
+      data: {
+        title: trimmedTitle,
+        description: trimmedDescription,
+      },
+    });
 
-      await tx.signalSource.create({
-        data: {
-          signalId: signal.id,
-          type,
-          label,
-          url: trimmedUrl,
-        },
-      });
+    await db.signalSource.create({
+      data: {
+        signalId: signal.id,
+        type,
+        label,
+        url: trimmedUrl,
+      },
+    });
 
-      await tx.signalEvent.create({
-        data: {
-          signalId: signal.id,
-          eventType: "source_added",
-          note: `Source added: ${label}`,
-        },
-      });
+    await db.signalEvent.create({
+      data: {
+        signalId: signal.id,
+        eventType: "source_added",
+        note: `Source added: ${label}`,
+      },
     });
   } else {
     await db.signal.create({
@@ -300,27 +298,25 @@ export async function createSignalSource(
 
   const { type, label } = detectSource(trimmedUrl);
 
-  await db.$transaction(async (tx) => {
-    const source = await tx.signalSource.create({
-      data: {
-        signalId,
+  const source = await db.signalSource.create({
+    data: {
+      signalId,
+      type,
+      label,
+      url: trimmedUrl,
+    },
+  });
+
+  await db.signalEvent.create({
+    data: {
+      signalId,
+      eventType: "source_added",
+      note: buildSourceEventNote("added", {
+        sourceId: source.id,
         type,
         label,
-        url: trimmedUrl,
-      },
-    });
-
-    await tx.signalEvent.create({
-      data: {
-        signalId,
-        eventType: "source_added",
-        note: buildSourceEventNote("added", {
-          sourceId: source.id,
-          type,
-          label,
-        }),
-      },
-    });
+      }),
+    },
   });
 
   revalidatePath("/signals");
