@@ -89,6 +89,26 @@ export function NewSignalDialog() {
             />
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="sourceUrl">
+              Source URL{" "}
+              <span className="text-muted-foreground font-normal">
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id="sourceUrl"
+              name="sourceUrl"
+              type="url"
+              placeholder="https://..."
+            />
+            {state.fieldErrors?.sourceUrl && (
+              <p className="text-sm text-destructive" aria-live="polite">
+                {state.fieldErrors.sourceUrl}
+              </p>
+            )}
+          </div>
+
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Creating…" : "Create Signal"}

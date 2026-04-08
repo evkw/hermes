@@ -29,6 +29,15 @@ enum SignalEventType {
   reopened
   link_attached
   edited
+  source_added
+}
+
+enum SourceType {
+  manual
+  teams
+  gitlab
+  jira
+  url_other
 }
 
 // -- Models --
@@ -45,7 +54,8 @@ model Signal {
   resolvedAt    DateTime?
   focusedOnDate DateTime?
 
-  events SignalEvent[]
+  events  SignalEvent[]
+  sources SignalSource[]
 
   @@index([status])
   @@index([riskLevel])
@@ -67,4 +77,20 @@ model SignalEvent {
   @@index([signalId])
   @@index([createdAt])
   @@index([signalId, createdAt])
+}
+
+model SignalSource {
+  id        String     @id @default(cuid())
+  signalId  String
+  type      SourceType
+  label     String
+  url       String?
+  note      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId])
+  @@index([type])
 }

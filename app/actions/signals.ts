@@ -3,10 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 
+type SourceType = "manual" | "teams" | "gitlab" | "jira" | "url_other";
+
+function detectSource(url: string): { type: SourceType; label: string } {
+  const host = new URL(url).hostname.toLowerCase();
+  if (host.includes("teams.microsoft")) return { type: "teams", label: "Teams Link" };
+  if (host.includes("lfmsco.atlassian")) return { type: "jira", label: "Jira Link" };
+  if (host.includes("gitlab.lfms")) return { type: "gitlab", label: "GitLab Link" };
+  return { type: "url_other", label: "Link" };
+}
+
 export type CreateSignalState = {
   success: boolean;
   error?: string;
-  fieldErrors?: { title?: string };
+  fieldErrors?: {
+    title?: string;
+    sourceUrl?: string;
+  };
 };
 
 export async function createSignal(
@@ -26,12 +39,57 @@ export async function createSignal(
       ? description.trim()
       : null;
 
-  await db.signal.create({
-    data: {
-      title: trimmedTitle,
-      description: trimmedDescription,
-    },
-  });
+  // --- Optional source URL ---
+  const rawSourceUrl = formData.get("sourceUrl");
+  const trimmedUrl =
+    typeof rawSourceUrl === "string" && rawSourceUrl.trim().length > 0
+      ? rawSourceUrl.trim()
+      : null;
+
+  if (trimmedUrl) {
+    try {
+      new URL(trimmedUrl);
+    } catch {
+      return { success: false, fieldErrors: { sourceUrl: "Invalid URL" } };
+    }
+  }
+
+  if (trimmedUrl) {
+    const { type, label } = detectSource(trimmedUrl);
+
+    await db.$transaction(async (tx) => {
+      const signal = await tx.signal.create({
+        data: {
+          title: trimmedTitle,
+          description: trimmedDescription,
+        },
+      });
+
+      await tx.signalSource.create({
+        data: {
+          signalId: signal.id,
+          type,
+          label,
+          url: trimmedUrl,
+        },
+      });
+
+      await tx.signalEvent.create({
+        data: {
+          signalId: signal.id,
+          eventType: "source_added",
+          note: `Source added: ${label}`,
+        },
+      });
+    });
+  } else {
+    await db.signal.create({
+      data: {
+        title: trimmedTitle,
+        description: trimmedDescription,
+      },
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/inflight");
@@ -200,6 +258,7 @@ export async function getSignalWithEvents(signalId: string) {
     where: { id: signalId },
     include: {
       events: { orderBy: { createdAt: "desc" } },
+      sources: { orderBy: { createdAt: "desc" } },
     },
   });
 
