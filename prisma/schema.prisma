@@ -30,6 +30,7 @@ enum SignalEventType {
   link_attached
   edited
   source_added
+  source_removed
 }
 
 enum SourceType {
