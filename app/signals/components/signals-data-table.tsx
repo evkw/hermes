@@ -4,12 +4,11 @@ import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useEffect, useCallback, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useCallback, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Table,
@@ -176,11 +175,12 @@ const columns: ColumnDef<SignalRow>[] = [
   },
 ];
 
-function buildHref(params: { page?: number; sort?: string; order?: string }) {
+function buildHref(params: { page?: number; sort?: string; order?: string; q?: string }) {
   const sp = new URLSearchParams();
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   if (params.sort && params.sort !== "createdAt") sp.set("sort", params.sort);
   if (params.order && params.order !== "desc") sp.set("order", params.order);
+  if (params.q) sp.set("q", params.q);
   const qs = sp.toString();
   return `/signals${qs ? `?${qs}` : ""}`;
 }
@@ -191,16 +191,35 @@ export function SignalsDataTable({
   totalPages,
   sort,
   order,
+  q,
 }: {
   data: SignalRow[];
   page: number;
   totalPages: number;
   sort: string;
   order: "asc" | "desc";
+  q: string;
 }) {
   const router = useRouter();
   const sorting: SortingState = [{ id: sort, desc: order === "desc" }];
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [searchValue, setSearchValue] = useState(q);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local input when the server-provided q changes (e.g. browser back/forward)
+  useEffect(() => {
+    setSearchValue(q);
+  }, [q]);
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchValue(value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        router.push(buildHref({ page: 1, sort, order, q: value.trim() }));
+      }, 300);
+    },
+    [sort, order, router]
+  );
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -211,24 +230,24 @@ export function SignalsDataTable({
         return;
       }
       if (e.key === "ArrowLeft" && page > 1) {
-        router.push(buildHref({ page: page - 1, sort, order }));
+        router.push(buildHref({ page: page - 1, sort, order, q }));
       } else if (e.key === "ArrowRight" && page < totalPages) {
-        router.push(buildHref({ page: page + 1, sort, order }));
+        router.push(buildHref({ page: page + 1, sort, order, q }));
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [page, totalPages, sort, order, router]);
+  }, [page, totalPages, sort, order, q, router]);
 
   const handleSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
       if (next.length === 0) {
-        router.push(buildHref({ page: 1 }));
+        router.push(buildHref({ page: 1, q }));
       } else {
         const col = next[0];
         router.push(
-          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc" })
+          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc", q })
         );
       }
     },
@@ -239,18 +258,16 @@ export function SignalsDataTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: handleSortingChange,
-    onGlobalFilterChange: setGlobalFilter,
-    state: { sorting, globalFilter },
+    state: { sorting },
   });
 
   return (
     <div className="space-y-4">
       <Input
-        placeholder="Filter signals…"
-        value={globalFilter}
-        onChange={(e) => setGlobalFilter(e.target.value)}
+        placeholder="Search signals…"
+        value={searchValue}
+        onChange={(e) => handleSearchChange(e.target.value)}
         className="max-w-sm"
       />
 
@@ -309,7 +326,7 @@ export function SignalsDataTable({
                   colSpan={columns.length}
                   className="h-24 text-center text-secondary"
                 >
-                  No signals yet. Create one to get started.
+                  {q ? "No matching signals found." : "No signals yet. Create one to get started."}
                 </TableCell>
               </TableRow>
             )}
@@ -324,14 +341,14 @@ export function SignalsDataTable({
           </p>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Link href={buildHref({ page: page - 1, sort, order })}>
+              <Link href={buildHref({ page: page - 1, sort, order, q })}>
                 <Button variant="outline" size="sm">Previous</Button>
               </Link>
             ) : (
               <Button variant="outline" size="sm" disabled>Previous</Button>
             )}
             {page < totalPages ? (
-              <Link href={buildHref({ page: page + 1, sort, order })}>
+              <Link href={buildHref({ page: page + 1, sort, order, q })}>
                 <Button variant="outline" size="sm">Next</Button>
               </Link>
             ) : (

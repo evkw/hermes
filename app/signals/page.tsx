@@ -37,17 +37,30 @@ export default async function SignalsTablePage({
   const sort = SORTABLE_COLUMNS.has(sortParam) ? sortParam : "createdAt";
   const order: "asc" | "desc" = orderParam === "asc" ? "asc" : "desc";
 
-  const [signals, totalCount] = await Promise.all([
+  const q = typeof params.q === "string" ? params.q.trim() : "";
+
+  const where = q
+    ? {
+        OR: [
+          { title: { contains: q, mode: "insensitive" as const } },
+          { description: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [signals, filteredCount, totalCount] = await Promise.all([
     db.signal.findMany({
+      where,
       orderBy: buildOrderBy(sort, order),
       include: { _count: { select: { events: true } } },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
+    db.signal.count({ where }),
     db.signal.count(),
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
 
   const rows = signals.map((s) => ({
     id: s.id,
@@ -70,7 +83,9 @@ export default async function SignalsTablePage({
           All Signals
         </h1>
         <p className="mt-1 text-sm text-secondary">
-          {totalCount} signal{totalCount !== 1 ? "s" : ""} total
+          {q
+            ? `${filteredCount} of ${totalCount} signal${totalCount !== 1 ? "s" : ""}`
+            : `${totalCount} signal${totalCount !== 1 ? "s" : ""} total`}
         </p>
       </div>
 
@@ -81,6 +96,7 @@ export default async function SignalsTablePage({
           totalPages={totalPages}
           sort={sort}
           order={order}
+          q={q}
         />
       </SectionCard>
     </div>
