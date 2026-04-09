@@ -22,6 +22,7 @@ services:
       - "3001:3000"
     environment:
       DATABASE_URL: postgresql://postgres:hermes-prod@db-prod:5432/hermes
+      TZ: Australia/Sydney
     depends_on:
       db-prod:
         condition: service_healthy
