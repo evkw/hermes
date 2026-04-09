@@ -38,8 +38,10 @@ export default async function SignalsTablePage({
   const order: "asc" | "desc" = orderParam === "asc" ? "asc" : "desc";
 
   const q = typeof params.q === "string" ? params.q.trim() : "";
+  const showResolved = params.resolved === "1";
 
-  const where = q
+  const statusFilter = showResolved ? {} : { status: "active" as const };
+  const searchFilter = q
     ? {
         OR: [
           { title: { contains: q, mode: "insensitive" as const } },
@@ -47,6 +49,8 @@ export default async function SignalsTablePage({
         ],
       }
     : {};
+
+  const where = { ...statusFilter, ...searchFilter };
 
   const [signals, filteredCount, totalCount] = await Promise.all([
     db.signal.findMany({
@@ -85,7 +89,9 @@ export default async function SignalsTablePage({
         <p className="mt-1 text-sm text-secondary">
           {q
             ? `${filteredCount} of ${totalCount} signal${totalCount !== 1 ? "s" : ""}`
-            : `${totalCount} signal${totalCount !== 1 ? "s" : ""} total`}
+            : showResolved
+              ? `${totalCount} signal${totalCount !== 1 ? "s" : ""} total`
+              : `${filteredCount} active signal${filteredCount !== 1 ? "s" : ""}`}
         </p>
       </div>
 
@@ -97,6 +103,7 @@ export default async function SignalsTablePage({
           sort={sort}
           order={order}
           q={q}
+          showResolved={showResolved}
         />
       </SectionCard>
     </div>

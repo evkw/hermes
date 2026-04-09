@@ -154,12 +154,13 @@ const columns: ColumnDef<SignalRow>[] = [
   },
 ];
 
-function buildHref(params: { page?: number; sort?: string; order?: string; q?: string }) {
+function buildHref(params: { page?: number; sort?: string; order?: string; q?: string; resolved?: boolean }) {
   const sp = new URLSearchParams();
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   if (params.sort && params.sort !== "createdAt") sp.set("sort", params.sort);
   if (params.order && params.order !== "desc") sp.set("order", params.order);
   if (params.q) sp.set("q", params.q);
+  if (params.resolved) sp.set("resolved", "1");
   const qs = sp.toString();
   return `/signals${qs ? `?${qs}` : ""}`;
 }
@@ -171,6 +172,7 @@ export function SignalsDataTable({
   sort,
   order,
   q,
+  showResolved,
 }: {
   data: SignalRow[];
   page: number;
@@ -178,11 +180,13 @@ export function SignalsDataTable({
   sort: string;
   order: "asc" | "desc";
   q: string;
+  showResolved: boolean;
 }) {
   const router = useRouter();
   const sorting: SortingState = [{ id: sort, desc: order === "desc" }];
   const [searchValue, setSearchValue] = useState(q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resolved = showResolved;
 
   // Sync local input when the server-provided q changes (e.g. browser back/forward)
   useEffect(() => {
@@ -194,10 +198,10 @@ export function SignalsDataTable({
       setSearchValue(value);
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        router.push(buildHref({ page: 1, sort, order, q: value.trim() }));
+        router.push(buildHref({ page: 1, sort, order, q: value.trim(), resolved }));
       }, 300);
     },
-    [sort, order, router]
+    [sort, order, resolved, router]
   );
 
   useEffect(() => {
@@ -209,24 +213,24 @@ export function SignalsDataTable({
         return;
       }
       if (e.key === "ArrowLeft" && page > 1) {
-        router.push(buildHref({ page: page - 1, sort, order, q }));
+        router.push(buildHref({ page: page - 1, sort, order, q, resolved }));
       } else if (e.key === "ArrowRight" && page < totalPages) {
-        router.push(buildHref({ page: page + 1, sort, order, q }));
+        router.push(buildHref({ page: page + 1, sort, order, q, resolved }));
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [page, totalPages, sort, order, q, router]);
+  }, [page, totalPages, sort, order, q, resolved, router]);
 
   const handleSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
       if (next.length === 0) {
-        router.push(buildHref({ page: 1, q }));
+        router.push(buildHref({ page: 1, q, resolved }));
       } else {
         const col = next[0];
         router.push(
-          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc", q })
+          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc", q, resolved })
         );
       }
     },
@@ -243,12 +247,25 @@ export function SignalsDataTable({
 
   return (
     <div className="space-y-4">
-      <Input
-        placeholder="Search signals…"
-        value={searchValue}
-        onChange={(e) => handleSearchChange(e.target.value)}
-        className="max-w-sm"
-      />
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="Search signals…"
+          value={searchValue}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="max-w-sm"
+        />
+        <label className="flex items-center gap-2 text-sm text-secondary whitespace-nowrap cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showResolved}
+            onChange={() =>
+              router.push(buildHref({ page: 1, sort, order, q, resolved: !showResolved }))
+            }
+            className="accent-on-surface"
+          />
+          Show resolved
+        </label>
+      </div>
 
       <div className="rounded-lg border border-outline-variant/40">
         <Table>
@@ -320,14 +337,14 @@ export function SignalsDataTable({
           </p>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Link href={buildHref({ page: page - 1, sort, order, q })}>
+              <Link href={buildHref({ page: page - 1, sort, order, q, resolved })}>
                 <Button variant="outline" size="sm">Previous</Button>
               </Link>
             ) : (
               <Button variant="outline" size="sm" disabled>Previous</Button>
             )}
             {page < totalPages ? (
-              <Link href={buildHref({ page: page + 1, sort, order, q })}>
+              <Link href={buildHref({ page: page + 1, sort, order, q, resolved })}>
                 <Button variant="outline" size="sm">Next</Button>
               </Link>
             ) : (
