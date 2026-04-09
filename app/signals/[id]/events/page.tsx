@@ -6,6 +6,7 @@ import { EventsDataTable } from "./components/events-data-table";
 import { SourcesDataTable } from "./components/sources-data-table";
 import { SourceFormDialog } from "./components/source-form-dialog";
 import { EditSignalDialog } from "@/app/components/edit-signal-dialog";
+import { NewEventDialog } from "@/app/components/new-event-dialog";
 
 export default async function SignalEventsPage({
   params,
@@ -85,7 +86,16 @@ export default async function SignalEventsPage({
         />
       </SectionCard>
 
-      <SectionCard title={`All Events — ${signal.events.length} event${signal.events.length !== 1 ? "s" : ""}`}>
+      <SectionCard
+        title={`All Events — ${signal.events.length} event${signal.events.length !== 1 ? "s" : ""}`}
+        actions={
+          <NewEventDialog signalId={signal.id} signalTitle={signal.title}>
+            <Button size="sm" variant="outline">
+              Add event
+            </Button>
+          </NewEventDialog>
+        }
+      >
         <EventsDataTable data={rows} />
       </SectionCard>
     </div>

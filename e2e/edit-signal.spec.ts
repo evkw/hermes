@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("edit a signal title and description from the signals table", async ({ page }) => {
+test("edit a signal title and description from the detail page", async ({ page }) => {
   // 1. Create a new signal
   await page.goto("/");
   await page.getByRole("button", { name: "New Signal" }).click();
@@ -12,14 +12,17 @@ test("edit a signal title and description from the signals table", async ({ page
   await page.getByRole("button", { name: "Create Signal" }).click();
   await expect(page.getByRole("heading", { name: "New Signal" })).not.toBeVisible();
 
-  // 2. Navigate to Signals table
+  // 2. Navigate to Signals table and open the signal detail page
   await page.getByRole("link", { name: "Signals" }).click();
   await expect(page).toHaveURL("/signals");
   await expect(page.getByText(originalTitle)).toBeVisible();
 
-  // 3. Click Edit on the signal's row
   const row = page.getByRole("row").filter({ hasText: originalTitle });
-  await row.getByRole("button", { name: "Edit" }).click();
+  await row.click();
+  await expect(page.locator("h1")).toContainText(originalTitle);
+
+  // 3. Click Edit on the detail page
+  await page.getByRole("button", { name: "Edit" }).click();
   await expect(page.getByRole("heading", { name: "Edit Signal" })).toBeVisible();
 
   // 4. Update the title and description
@@ -33,12 +36,7 @@ test("edit a signal title and description from the signals table", async ({ page
   // Dialog should close
   await expect(page.getByRole("heading", { name: "Edit Signal" })).not.toBeVisible();
 
-  // 5. Verify updated title is visible in the signals table
-  await expect(page.getByText(updatedTitle)).toBeVisible();
-
-  // 6. Navigate to signal detail and verify updated fields
-  const updatedRow = page.getByRole("row").filter({ hasText: updatedTitle });
-  await updatedRow.click();
+  // 5. Verify the detail page reflects the changes
   await expect(page.locator("h1")).toContainText(updatedTitle);
   await expect(page.getByText("Updated description")).toBeVisible();
 });
@@ -86,10 +84,12 @@ test("edit dialog pre-populates with current values", async ({ page }) => {
   await page.getByRole("button", { name: "Create Signal" }).click();
   await expect(page.getByRole("heading", { name: "New Signal" })).not.toBeVisible();
 
-  // 2. Open Edit from the signals table
+  // 2. Open the signal detail page and click Edit
   await page.getByRole("link", { name: "Signals" }).click();
   const row = page.getByRole("row").filter({ hasText: title });
-  await row.getByRole("button", { name: "Edit" }).click();
+  await row.click();
+  await expect(page.locator("h1")).toContainText(title);
+  await page.getByRole("button", { name: "Edit" }).click();
 
   // 3. Verify fields are pre-populated
   await expect(page.getByLabel("Title")).toHaveValue(title);

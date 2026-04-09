@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("create a signal then add a note event to it", async ({ page }) => {
+test("create a signal then add a note event from the detail page", async ({ page }) => {
   // 1. Create a new signal
   await page.goto("/");
   await page.getByRole("button", { name: "New Signal" }).click();
@@ -14,14 +14,17 @@ test("create a signal then add a note event to it", async ({ page }) => {
   // Dialog should close
   await expect(page.getByRole("heading", { name: "New Signal" })).not.toBeVisible();
 
-  // 2. Navigate to Signals table
+  // 2. Navigate to Signals table and open the signal detail page
   await page.getByRole("link", { name: "Signals" }).click();
   await expect(page).toHaveURL("/signals");
   await expect(page.getByText(signalTitle)).toBeVisible();
 
-  // 3. Open the "+ Event" dialog for this signal's row
   const row = page.getByRole("row").filter({ hasText: signalTitle });
-  await row.getByRole("button", { name: "+ Event" }).click();
+  await row.click();
+  await expect(page.locator("h1")).toContainText(signalTitle);
+
+  // 3. Open the "+ Event" dialog from the signal detail page
+  await page.getByRole("button", { name: "+ Event" }).click();
   await expect(page.getByRole("heading", { name: "Add Event" })).toBeVisible();
 
   // 4. Fill in the note and submit
@@ -31,8 +34,6 @@ test("create a signal then add a note event to it", async ({ page }) => {
   // Dialog should close after success
   await expect(page.getByRole("heading", { name: "Add Event" })).not.toBeVisible();
 
-  // 5. Navigate to the signal's events page and verify the event exists
-  await row.click();
-  await expect(page.locator("h1")).toContainText(signalTitle);
+  // 5. Verify the event appears in the events table
   await expect(page.getByText("Initial progress update — requirements gathered")).toBeVisible();
 });

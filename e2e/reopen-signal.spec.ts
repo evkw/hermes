@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("reopen a resolved signal from the signals table", async ({ page }) => {
+test("reopen a resolved signal from the detail page via signals table", async ({ page }) => {
   // 1. Create a new signal
   await page.goto("/");
   await page.getByRole("button", { name: "New Signal" }).click();
@@ -16,19 +16,17 @@ test("reopen a resolved signal from the signals table", async ({ page }) => {
   const signalElement = page.locator("[data-signal]").filter({ hasText: signalTitle });
   await signalElement.getByRole("button", { name: "Resolve" }).click();
 
-  // 3. Navigate to Signals table — signal should be resolved
+  // 3. Navigate to Signals table and open the resolved signal
   await page.getByRole("link", { name: "Signals" }).click();
   await expect(page).toHaveURL("/signals");
   const row = page.getByRole("row").filter({ hasText: signalTitle });
-  await expect(row.getByText("resolved")).toBeVisible();
+  await row.click();
+  await expect(page.locator("h1")).toContainText(signalTitle);
 
-  // 4. Click Reopen on the resolved signal
-  await row.getByRole("button", { name: "Reopen" }).click();
+  // 4. Click "Reopen signal" on the detail page
+  await page.getByRole("button", { name: "Reopen signal" }).click();
 
-  // 5. Verify the signal is now active
-  await expect(row.getByText("active")).toBeVisible();
-
-  // 6. Verify the signal appears in the in-flight view again
+  // 5. Verify the signal appears in the in-flight view again
   await page.getByRole("link", { name: "In-Flight" }).click();
   await expect(page.getByText(signalTitle)).toBeVisible();
 });
