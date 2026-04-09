@@ -419,6 +419,107 @@ export async function deleteSignalSource(
   return { success: true };
 }
 
+// --- Edit signal ---
+
+export type UpdateSignalState = {
+  success: boolean;
+  error?: string;
+  fieldErrors?: {
+    title?: string;
+  };
+};
+
+export async function updateSignal(
+  prevState: UpdateSignalState,
+  formData: FormData
+): Promise<UpdateSignalState> {
+  const signalId = formData.get("signalId");
+  const title = formData.get("title");
+  const description = formData.get("description");
+
+  if (typeof signalId !== "string" || signalId.trim().length === 0) {
+    return { success: false, error: "Signal ID is required" };
+  }
+  if (typeof title !== "string" || title.trim().length === 0) {
+    return { success: false, fieldErrors: { title: "Title is required" } };
+  }
+
+  const trimmedTitle = title.trim();
+  const trimmedDescription =
+    typeof description === "string" && description.trim().length > 0
+      ? description.trim()
+      : null;
+
+  const existing = await db.signal.findUnique({ where: { id: signalId } });
+  if (!existing) {
+    return { success: false, error: "Signal not found" };
+  }
+
+  // No-op detection: skip write if nothing changed
+  if (
+    existing.title === trimmedTitle &&
+    (existing.description ?? null) === trimmedDescription
+  ) {
+    return { success: true };
+  }
+
+  const changes: string[] = [];
+  if (existing.title !== trimmedTitle) changes.push("Title updated");
+  if ((existing.description ?? null) !== trimmedDescription)
+    changes.push("Description updated");
+
+  await db.$transaction([
+    db.signal.update({
+      where: { id: signalId },
+      data: { title: trimmedTitle, description: trimmedDescription },
+    }),
+    db.signalEvent.create({
+      data: {
+        signalId,
+        eventType: "edited",
+        note: changes.join(", "),
+      },
+    }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/inflight");
+  revalidatePath("/signals");
+  revalidatePath("/calendar");
+
+  return { success: true };
+}
+
+// --- Unresolve signal ---
+
+export async function unresolveSignal(signalId: string): Promise<void> {
+  const signal = await db.signal.findUnique({ where: { id: signalId } });
+  if (!signal || signal.status !== "resolved") return;
+
+  await db.$transaction([
+    db.signal.update({
+      where: { id: signalId },
+      data: {
+        status: "active",
+        resolvedAt: null,
+        riskLevel: "active",
+      },
+    }),
+    db.signalEvent.create({
+      data: {
+        signalId,
+        eventType: "reopened",
+        note: "Signal reopened",
+      },
+    }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/inflight");
+  revalidatePath("/signals");
+  revalidatePath("/calendar");
+}
+
 // --- Summary exclusion ---
 
 export async function toggleSummaryExclusion(

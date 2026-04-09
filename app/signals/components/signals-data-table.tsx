@@ -21,6 +21,8 @@ import {
 import { Input } from "@/components/core/input";
 import { Button } from "@/components/core/button";
 import { NewEventDialog } from "@/app/components/new-event-dialog";
+import { EditSignalDialog } from "@/app/components/edit-signal-dialog";
+import { unresolveSignal } from "@/app/actions/signals";
 
 type SignalRow = {
   id: string;
@@ -156,9 +158,22 @@ const columns: ColumnDef<SignalRow>[] = [
   {
     id: "actions",
     header: "",
-    size: 100,
+    size: 180,
     cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+        <EditSignalDialog
+          signalId={row.original.id}
+          signalTitle={row.original.title}
+          signalDescription={row.original.description}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-xs opacity-70 hover:opacity-100"
+          >
+            Edit
+          </Button>
+        </EditSignalDialog>
         <NewEventDialog
           signalId={row.original.id}
           signalTitle={row.original.title}
@@ -170,6 +185,18 @@ const columns: ColumnDef<SignalRow>[] = [
             + Event
           </Button>
         </NewEventDialog>
+        {row.original.status === "resolved" && (
+          <form action={unresolveSignal.bind(null, row.original.id)}>
+            <Button
+              type="submit"
+              size="sm"
+              variant="ghost"
+              className="text-xs opacity-70 hover:opacity-100"
+            >
+              Reopen
+            </Button>
+          </form>
+        )}
       </div>
     ),
   },
