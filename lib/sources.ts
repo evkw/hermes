@@ -1,9 +1,27 @@
-export type SourceType = "manual" | "teams" | "gitlab" | "jira" | "url_other";
+import { db } from "./db";
 
-export function detectSource(url: string): { type: SourceType; label: string } {
-  const host = new URL(url).hostname.toLowerCase();
-  if (host.includes("teams.microsoft")) return { type: "teams", label: "Teams Link" };
-  if (host.includes("lfmsco.atlassian")) return { type: "jira", label: "Jira Link" };
-  if (host.includes("gitlab.lfms")) return { type: "gitlab", label: "GitLab Link" };
-  return { type: "url_other", label: "Link" };
+export const DEFAULT_SOURCE_TYPE = "link";
+export const DEFAULT_SOURCE_LABEL = "Link";
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export async function detectSource(
+  url: string
+): Promise<{ type: string; label: string }> {
+  const hostname = new URL(url).hostname.toLowerCase();
+
+  const mapping = await db.originMapping.findUnique({
+    where: { matchValue: hostname },
+  });
+
+  if (mapping) {
+    return {
+      type: mapping.sourceType,
+      label: mapping.label ?? capitalize(mapping.sourceType) + " Link",
+    };
+  }
+
+  return { type: DEFAULT_SOURCE_TYPE, label: DEFAULT_SOURCE_LABEL };
 }

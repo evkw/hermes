@@ -11,7 +11,7 @@ const navLinks = [
   { label: "In Flight", href: "/inflight" },
   { label: "Signals", href: "/signals" },
   { label: "Calendar", href: "/calendar" },
-  // { label: "Settings", href: "/settings" },
+  { label: "Settings", href: "/settings" },
 ];
 
 export function TopNav() {

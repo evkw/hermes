@@ -33,14 +33,6 @@ enum SignalEventType {
   source_removed
 }
 
-enum SourceType {
-  manual
-  teams
-  gitlab
-  jira
-  url_other
-}
-
 // -- Models --
 
 model Signal {
@@ -82,19 +74,30 @@ model SignalEvent {
 }
 
 model SignalSource {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   signalId  String
-  type      SourceType
+  type      String
   label     String
   url       String?
   note      String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
 
   @@index([signalId])
   @@index([type])
+}
+
+model OriginMapping {
+  id         String   @id @default(cuid())
+  matchValue String   @unique // normalized hostname
+  sourceType String   // e.g. "gitlab", "jira", "figma"
+  label      String?  // optional display label
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([matchValue])
 }
 
 model SummaryExclusion {

@@ -19,14 +19,11 @@ import {
 } from "@/components/core/table";
 import { SourceFormDialog } from "./source-form-dialog";
 import { DeleteSourceButton } from "./delete-source-button";
+import { useMemo } from "react";
 
-const SOURCE_TYPE_LABELS: Record<string, string> = {
-  manual: "Manual",
-  teams: "Teams",
-  gitlab: "GitLab",
-  jira: "Jira",
-  url_other: "URL / Other",
-};
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export type SourceRow = {
   id: string;
@@ -46,14 +43,17 @@ function formatDate(iso: string) {
   });
 }
 
-const columns: ColumnDef<SourceRow>[] = [
+function buildColumns(
+  sourceTypeOptions?: { value: string; label: string }[]
+): ColumnDef<SourceRow>[] {
+  return [
   {
     accessorKey: "type",
     header: "Type",
     size: 100,
     cell: ({ row }) => (
       <span className="inline-flex items-center rounded-md bg-outline-variant/20 px-2 py-0.5 text-xs font-medium text-secondary">
-        {SOURCE_TYPE_LABELS[row.getValue("type") as string] ?? row.getValue("type")}
+        {capitalize(row.getValue("type") as string)}
       </span>
     ),
   },
@@ -114,6 +114,7 @@ const columns: ColumnDef<SourceRow>[] = [
           <SourceFormDialog
             signalId={source.signalId}
             mode="edit"
+            sourceTypeOptions={sourceTypeOptions}
             initialData={{
               sourceId: source.id,
               type: source.type,
@@ -143,10 +144,21 @@ const columns: ColumnDef<SourceRow>[] = [
       );
     },
   },
-];
+  ];
+}
 
-export function SourcesDataTable({ data }: { data: SourceRow[] }) {
+export function SourcesDataTable({
+  data,
+  sourceTypeOptions,
+}: {
+  data: SourceRow[];
+  sourceTypeOptions?: { value: string; label: string }[];
+}) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const columns = useMemo(
+    () => buildColumns(sourceTypeOptions),
+    [sourceTypeOptions]
+  );
 
   const table = useReactTable({
     data,

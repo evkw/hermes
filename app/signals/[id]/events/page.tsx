@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSignalWithEvents, unresolveSignal } from "@/app/actions/signals";
+import { getOriginMappings } from "@/app/actions/origin-mappings";
 import { SectionCard } from "@/components/ui/section-card";
 import { Button } from "@/components/core/button";
 import { EventsDataTable } from "./components/events-data-table";
@@ -8,17 +9,29 @@ import { SourceFormDialog } from "./components/source-form-dialog";
 import { EditSignalDialog } from "@/app/components/edit-signal-dialog";
 import { NewEventDialog } from "@/app/components/new-event-dialog";
 
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export default async function SignalEventsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const signal = await getSignalWithEvents(id);
+  const [signal, mappings] = await Promise.all([
+    getSignalWithEvents(id),
+    getOriginMappings(),
+  ]);
 
   if (!signal) {
     notFound();
   }
+
+  const sourceTypeOptions = mappings.map((m) => ({
+    value: m.sourceType,
+    label: m.label ?? capitalize(m.sourceType),
+  }));
 
   const rows = signal.events.map((e) => ({
     id: e.id,
@@ -66,7 +79,7 @@ export default async function SignalEventsPage({
       <SectionCard
         title={`Sources — ${signal.sources.length}`}
         actions={
-          <SourceFormDialog signalId={signal.id} mode="add">
+          <SourceFormDialog signalId={signal.id} mode="add" sourceTypeOptions={sourceTypeOptions}>
             <Button size="sm" variant="outline">
               Add source
             </Button>
@@ -74,6 +87,7 @@ export default async function SignalEventsPage({
         }
       >
         <SourcesDataTable
+          sourceTypeOptions={sourceTypeOptions}
           data={signal.sources.map((s) => ({
             id: s.id,
             signalId: signal.id,

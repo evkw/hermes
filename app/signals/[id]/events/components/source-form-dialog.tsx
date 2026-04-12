@@ -21,12 +21,9 @@ import {
 } from "@/app/actions/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
 
-const SOURCE_TYPE_OPTIONS = [
+const BASELINE_TYPE_OPTIONS = [
   { value: "manual", label: "Manual" },
-  { value: "teams", label: "Teams" },
-  { value: "gitlab", label: "GitLab" },
-  { value: "jira", label: "Jira" },
-  { value: "url_other", label: "URL / Other" },
+  { value: "link", label: "Link" },
 ] as const;
 
 const initialState: SourceActionState = { success: false };
@@ -34,6 +31,7 @@ const initialState: SourceActionState = { success: false };
 type SourceFormDialogProps = {
   signalId: string;
   children: React.ReactNode;
+  sourceTypeOptions?: { value: string; label: string }[];
 } & (
   | { mode: "add" }
   | {
@@ -49,9 +47,18 @@ type SourceFormDialogProps = {
 );
 
 export function SourceFormDialog(props: SourceFormDialogProps) {
-  const { signalId, mode, children } = props;
+  const { signalId, mode, children, sourceTypeOptions } = props;
   const isEdit = mode === "edit";
   const action = isEdit ? updateSignalSource : createSignalSource;
+
+  const allTypeOptions = [
+    ...BASELINE_TYPE_OPTIONS,
+    ...(sourceTypeOptions ?? []),
+  ];
+  // Deduplicate by value, keeping the last occurrence (user-defined wins)
+  const typeOptions = Array.from(
+    new Map(allTypeOptions.map((o) => [o.value, o])).values()
+  );
 
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -101,7 +108,7 @@ export function SourceFormDialog(props: SourceFormDialogProps) {
                 defaultValue={props.initialData.type}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                {SOURCE_TYPE_OPTIONS.map((opt) => (
+                {typeOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>

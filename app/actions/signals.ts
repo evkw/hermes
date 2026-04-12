@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { detectSource, type SourceType } from "@/lib/sources";
+import { detectSource } from "@/lib/sources";
 
 export type CreateSignalState = {
   success: boolean;
@@ -46,7 +46,7 @@ export async function createSignal(
   }
 
   if (trimmedUrl) {
-    const { type, label } = detectSource(trimmedUrl);
+    const { type, label } = await detectSource(trimmedUrl);
 
     const signal = await db.signal.create({
       data: {
@@ -296,7 +296,7 @@ export async function createSignalSource(
     return { success: false, fieldErrors: { url: "Invalid URL" } };
   }
 
-  const { type, label } = detectSource(trimmedUrl);
+  const { type, label } = await detectSource(trimmedUrl);
 
   const source = await db.signalSource.create({
     data: {
@@ -374,7 +374,7 @@ export async function updateSignalSource(
   await db.signalSource.update({
     where: { id: sourceId },
     data: {
-      type: trimmedType as SourceType,
+      type: trimmedType,
       label: trimmedLabel,
       url: trimmedUrl,
       note: trimmedNote,

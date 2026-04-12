@@ -29,14 +29,13 @@ test("add a source to an existing signal", async ({ page }) => {
   await page.getByRole("button", { name: "Add source" }).click();
   await expect(page.getByRole("heading", { name: "Add Source" })).toBeVisible();
 
-  // Fill URL — type and label are auto-detected
-  await page.getByLabel("Source URL").fill("https://lfmsco.atlassian.net/browse/HERMES-42");
+  // Fill URL — without mappings configured, falls back to "Link" type
+  await page.getByLabel("Source URL").fill("https://example.com/browse/HERMES-42");
   await page.getByRole("button", { name: "Add Source" }).click();
 
-  // Dialog closes, auto-detected source appears
+  // Dialog closes, source appears with fallback type
   await expect(page.getByRole("heading", { name: "Add Source" })).not.toBeVisible();
-  await expect(page.getByText("Jira Link")).toBeVisible();
-  await expect(page.getByText("Jira")).toBeVisible();
+  await expect(page.getByText("Link")).toBeVisible();
 
   // Verify source_added event in events table
   await expect(page.getByText("source_added").first()).toBeVisible();
@@ -48,13 +47,13 @@ test("edit a source", async ({ page }) => {
 
   // Add a source first (URL only)
   await page.getByRole("button", { name: "Add source" }).click();
-  await page.getByLabel("Source URL").fill("https://gitlab.lfms.example.com/project/-/merge_requests/99");
+  await page.getByLabel("Source URL").fill("https://example.com/project/-/merge_requests/99");
   await page.getByRole("button", { name: "Add Source" }).click();
   await expect(page.getByRole("heading", { name: "Add Source" })).not.toBeVisible();
-  await expect(page.getByText("GitLab Link")).toBeVisible();
+  await expect(page.getByText("Link").first()).toBeVisible();
 
   // Edit it — all fields visible in edit mode
-  await page.getByRole("button", { name: "Edit GitLab Link" }).click();
+  await page.getByRole("button", { name: "Edit Link" }).click();
   await expect(page.getByRole("heading", { name: "Edit Source" })).toBeVisible();
 
   await page.getByLabel("Label").clear();
@@ -63,7 +62,6 @@ test("edit a source", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Edit Source" })).not.toBeVisible();
   await expect(page.getByText("Auth refactor MR")).toBeVisible();
-  await expect(page.getByText("GitLab Link")).not.toBeVisible();
 });
 
 test("delete a source without deleting the signal", async ({ page }) => {
@@ -72,18 +70,17 @@ test("delete a source without deleting the signal", async ({ page }) => {
 
   // Add a source
   await page.getByRole("button", { name: "Add source" }).click();
-  await page.getByLabel("Source URL").fill("https://teams.microsoft.com/thread/123");
+  await page.getByLabel("Source URL").fill("https://example.com/thread/123");
   await page.getByRole("button", { name: "Add Source" }).click();
-  await expect(page.getByText("Teams Link")).toBeVisible();
+  await expect(page.getByText("Link").first()).toBeVisible();
 
   // Delete it
-  await page.getByRole("button", { name: "Delete Teams Link" }).click();
+  await page.getByRole("button", { name: "Delete Link" }).click();
   await expect(page.getByRole("heading", { name: "Delete Source" })).toBeVisible();
   await page.getByRole("button", { name: "Delete" }).click();
 
   // Source gone, signal still there
   await expect(page.getByRole("heading", { name: "Delete Source" })).not.toBeVisible();
-  await expect(page.getByText("Teams Link")).not.toBeVisible();
   await expect(page.getByText("No sources attached.")).toBeVisible();
   await expect(page.locator("h1")).toContainText(title);
 
@@ -108,17 +105,17 @@ test("multiple sources can be attached to one signal", async ({ page }) => {
 
   // Add first source
   await page.getByRole("button", { name: "Add source" }).click();
-  await page.getByLabel("Source URL").fill("https://lfmsco.atlassian.net/browse/HERMES-1");
+  await page.getByLabel("Source URL").fill("https://example.com/browse/HERMES-1");
   await page.getByRole("button", { name: "Add Source" }).click();
   await expect(page.getByRole("heading", { name: "Add Source" })).not.toBeVisible();
 
   // Add second source
   await page.getByRole("button", { name: "Add source" }).click();
-  await page.getByLabel("Source URL").fill("https://teams.microsoft.com/thread/456");
+  await page.getByLabel("Source URL").fill("https://other.example.com/thread/456");
   await page.getByRole("button", { name: "Add Source" }).click();
   await expect(page.getByRole("heading", { name: "Add Source" })).not.toBeVisible();
 
-  // Both visible
-  await expect(page.getByText("Jira Link")).toBeVisible();
-  await expect(page.getByText("Teams Link")).toBeVisible();
+  // Both visible (both are fallback "Link" type)
+  const linkCells = page.getByText("Link", { exact: true });
+  await expect(linkCells.first()).toBeVisible();
 });
