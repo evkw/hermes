@@ -33,6 +33,7 @@ type SignalRow = {
   resolvedAt: string | null;
   focusedOnDate: string | null;
   eventCount: number;
+  ownerName: string | null;
 };
 
 function RiskDot({ riskLevel }: { riskLevel: string }) {
@@ -107,6 +108,17 @@ const columns: ColumnDef<SignalRow>[] = [
           {status}
         </span>
       );
+    },
+  },
+  {
+    id: "owner",
+    accessorKey: "ownerName",
+    header: "Owner",
+    size: 100,
+    cell: ({ row }) => {
+      const name = row.original.ownerName;
+      if (!name) return <span className="text-outline">—</span>;
+      return <span className="text-xs text-on-surface">{name}</span>;
     },
   },
   {

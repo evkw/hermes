@@ -8,6 +8,7 @@ import { SourcesDataTable } from "./components/sources-data-table";
 import { SourceFormDialog } from "./components/source-form-dialog";
 import { EditSignalDialog } from "@/app/components/edit-signal-dialog";
 import { NewEventDialog } from "@/app/components/new-event-dialog";
+import { getPeople } from "@/app/actions/people";
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -19,9 +20,10 @@ export default async function SignalEventsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [signal, mappings] = await Promise.all([
+  const [signal, mappings, people] = await Promise.all([
     getSignalWithEvents(id),
     getOriginMappings(),
+    getPeople(),
   ]);
 
   if (!signal) {
@@ -54,12 +56,19 @@ export default async function SignalEventsPage({
                 {signal.description}
               </p>
             )}
+            {signal.owner && (
+              <p className="mt-2 text-xs text-outline">
+                Owner: {signal.owner.name}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <EditSignalDialog
               signalId={signal.id}
               signalTitle={signal.title}
               signalDescription={signal.description}
+              currentOwnerId={signal.ownerId}
+              people={people.map((p) => ({ id: p.id, name: p.name }))}
             >
               <Button size="sm" variant="outline">
                 Edit

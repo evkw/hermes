@@ -246,6 +246,7 @@ export async function getSignalWithEvents(signalId: string) {
   const signal = await db.signal.findUnique({
     where: { id: signalId },
     include: {
+      owner: true,
       events: { orderBy: { createdAt: "desc" } },
       sources: { orderBy: { createdAt: "desc" } },
     },
@@ -450,15 +451,32 @@ export async function updateSignal(
       ? description.trim()
       : null;
 
+  const rawOwnerId = formData.get("ownerId");
+  const ownerId =
+    typeof rawOwnerId === "string" && rawOwnerId.trim().length > 0
+      ? rawOwnerId.trim()
+      : null;
+
   const existing = await db.signal.findUnique({ where: { id: signalId } });
   if (!existing) {
     return { success: false, error: "Signal not found" };
   }
 
+  // Validate owner exists if provided
+  if (ownerId) {
+    const person = await db.person.findUnique({ where: { id: ownerId } });
+    if (!person) {
+      return { success: false, error: "Selected owner not found" };
+    }
+  }
+
+  const ownerChanged = (existing.ownerId ?? null) !== ownerId;
+
   // No-op detection: skip write if nothing changed
   if (
     existing.title === trimmedTitle &&
-    (existing.description ?? null) === trimmedDescription
+    (existing.description ?? null) === trimmedDescription &&
+    !ownerChanged
   ) {
     return { success: true };
   }
@@ -468,19 +486,46 @@ export async function updateSignal(
   if ((existing.description ?? null) !== trimmedDescription)
     changes.push("Description updated");
 
-  await db.$transaction([
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ops: any[] = [
     db.signal.update({
       where: { id: signalId },
-      data: { title: trimmedTitle, description: trimmedDescription },
+      data: { title: trimmedTitle, description: trimmedDescription, ownerId },
     }),
-    db.signalEvent.create({
-      data: {
-        signalId,
-        eventType: "edited",
-        note: changes.join(", "),
-      },
-    }),
-  ]);
+  ];
+
+  if (changes.length > 0) {
+    ops.push(
+      db.signalEvent.create({
+        data: {
+          signalId,
+          eventType: "edited",
+          note: changes.join(", "),
+        },
+      })
+    );
+  }
+
+  if (ownerChanged) {
+    let ownerNote: string;
+    if (ownerId) {
+      const person = await db.person.findUnique({ where: { id: ownerId } });
+      ownerNote = `Owner set to ${person!.name}`;
+    } else {
+      ownerNote = "Owner removed";
+    }
+    ops.push(
+      db.signalEvent.create({
+        data: {
+          signalId,
+          eventType: "owner_changed",
+          note: ownerNote,
+        },
+      })
+    );
+  }
+
+  await db.$transaction(ops);
 
   revalidatePath("/");
   revalidatePath("/inflight");
@@ -518,6 +563,75 @@ export async function unresolveSignal(signalId: string): Promise<void> {
   revalidatePath("/inflight");
   revalidatePath("/signals");
   revalidatePath("/calendar");
+}
+
+// --- Owner assignment ---
+
+export type UpdateOwnerState = {
+  success: boolean;
+  error?: string;
+};
+
+export async function updateSignalOwner(
+  prevState: UpdateOwnerState,
+  formData: FormData
+): Promise<UpdateOwnerState> {
+  const signalId = formData.get("signalId");
+  const rawOwnerId = formData.get("ownerId");
+
+  if (typeof signalId !== "string" || signalId.trim().length === 0) {
+    return { success: false, error: "Signal ID is required" };
+  }
+
+  const ownerId =
+    typeof rawOwnerId === "string" && rawOwnerId.trim().length > 0
+      ? rawOwnerId.trim()
+      : null;
+
+  const signal = await db.signal.findUnique({ where: { id: signalId } });
+  if (!signal) {
+    return { success: false, error: "Signal not found" };
+  }
+
+  // No-op detection
+  if ((signal.ownerId ?? null) === ownerId) {
+    return { success: true };
+  }
+
+  // Validate owner exists if provided
+  if (ownerId) {
+    const person = await db.person.findUnique({ where: { id: ownerId } });
+    if (!person) {
+      return { success: false, error: "Selected owner not found" };
+    }
+  }
+
+  let ownerNote: string;
+  if (ownerId) {
+    const person = await db.person.findUnique({ where: { id: ownerId } });
+    ownerNote = `Owner set to ${person!.name}`;
+  } else {
+    ownerNote = "Owner removed";
+  }
+
+  await db.$transaction([
+    db.signal.update({
+      where: { id: signalId },
+      data: { ownerId },
+    }),
+    db.signalEvent.create({
+      data: {
+        signalId,
+        eventType: "owner_changed",
+        note: ownerNote,
+      },
+    }),
+  ]);
+
+  revalidatePath("/inflight");
+  revalidatePath("/signals");
+
+  return { success: true };
 }
 
 // --- Summary exclusion ---

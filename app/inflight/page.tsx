@@ -59,6 +59,7 @@ export default async function SignalsPage() {
 
   const activeSignals = await db.signal.findMany({
     where: { status: "active" },
+    include: { owner: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -125,6 +126,7 @@ export default async function SignalsPage() {
                 description={signal.description}
                 riskLevel={signal.riskLevel}
                 lastWorkedLabel={relativeWorkedLabel(signal.lastWorkedAt)}
+                ownerName={signal.owner?.name ?? null}
                 isFocusedToday={true}
               />
             ))}

@@ -23,11 +23,15 @@ export function EditSignalDialog({
   signalId,
   signalTitle,
   signalDescription,
+  currentOwnerId,
+  people,
   children,
 }: {
   signalId: string;
   signalTitle: string;
   signalDescription: string | null;
+  currentOwnerId?: string | null;
+  people?: { id: string; name: string }[];
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -89,6 +93,30 @@ export function EditSignalDialog({
               rows={3}
             />
           </div>
+
+          {people && people.length > 0 && (
+            <div className="grid gap-2">
+              <Label htmlFor="edit-owner">
+                Owner{" "}
+                <span className="text-muted-foreground font-normal">
+                  (optional)
+                </span>
+              </Label>
+              <select
+                id="edit-owner"
+                name="ownerId"
+                defaultValue={currentOwnerId ?? ""}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">No owner</option>
+                {people.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="submit" disabled={pending}>

@@ -116,6 +116,14 @@ export async function deletePerson(
     return { success: false, error: "Person not found" };
   }
 
+  const assignedCount = await db.signal.count({ where: { ownerId: id } });
+  if (assignedCount > 0) {
+    return {
+      success: false,
+      error: `This person is assigned as owner on ${assignedCount} signal${assignedCount !== 1 ? "s" : ""}. Remove them as owner first.`,
+    };
+  }
+
   await db.person.delete({ where: { id } });
 
   revalidatePath("/settings");

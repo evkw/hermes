@@ -14,11 +14,15 @@ const SORTABLE_COLUMNS = new Set([
   "lastWorkedAt",
   "createdAt",
   "eventCount",
+  "owner",
 ]);
 
 function buildOrderBy(sort: string, order: "asc" | "desc") {
   if (sort === "eventCount") {
     return { events: { _count: order } };
+  }
+  if (sort === "owner") {
+    return { owner: { name: order } };
   }
   return { [sort]: order };
 }
@@ -56,7 +60,7 @@ export default async function SignalsTablePage({
     db.signal.findMany({
       where,
       orderBy: buildOrderBy(sort, order),
-      include: { _count: { select: { events: true } } },
+      include: { owner: true, _count: { select: { events: true } } },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
@@ -78,6 +82,7 @@ export default async function SignalsTablePage({
     resolvedAt: s.resolvedAt?.toISOString() ?? null,
     focusedOnDate: s.focusedOnDate?.toISOString() ?? null,
     eventCount: s._count.events,
+    ownerName: s.owner?.name ?? null,
   }));
 
   return (

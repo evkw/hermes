@@ -10,6 +10,7 @@ type SignalCardProps = {
   description: string | null;
   riskLevel: RiskLevel;
   lastWorkedLabel: string | null;
+  ownerName: string | null;
   isFocusedToday: boolean;
 };
 
@@ -28,6 +29,7 @@ export function SignalCard({
   description,
   riskLevel,
   lastWorkedLabel,
+  ownerName,
   isFocusedToday,
 }: SignalCardProps) {
   return (
@@ -51,6 +53,12 @@ export function SignalCard({
         {lastWorkedLabel && (
           <p className="mt-2 text-xs text-outline">
             {lastWorkedLabel}
+          </p>
+        )}
+
+        {ownerName && (
+          <p className="mt-1 text-xs text-outline">
+            Owner: {ownerName}
           </p>
         )}
       </div>
