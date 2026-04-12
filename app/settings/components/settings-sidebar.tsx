@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const settingsNav = [
   { label: "Origin Mappings", href: "/settings/origin-mappings" },
+  { label: "People", href: "/settings/people" },
 ];
 
 export function SettingsSidebar() {
