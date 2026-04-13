@@ -37,3 +37,38 @@ test("create a signal then add a note event from the detail page", async ({ page
   // 5. Verify the event appears in the events table
   await expect(page.getByText("Initial progress update — requirements gathered")).toBeVisible();
 });
+
+test("adding an event auto-updates the calendar to show the signal as progressed", async ({ page }) => {
+  // 1. Create a new signal
+  await page.goto("/");
+  await page.getByRole("button", { name: "New Signal" }).click();
+  await expect(page.getByRole("heading", { name: "New Signal" })).toBeVisible();
+
+  const signalTitle = `Auto-worked signal ${Date.now()}`;
+  await page.getByLabel("Title").fill(signalTitle);
+  await page.getByLabel("Description").fill("Signal to test auto worked-on");
+  await page.getByRole("button", { name: "Create Signal" }).click();
+  await expect(page.getByRole("heading", { name: "New Signal" })).not.toBeVisible();
+
+  // 2. Navigate to the signal detail page
+  await page.getByRole("link", { name: "Signals" }).click();
+  await expect(page).toHaveURL("/signals");
+  const row = page.getByRole("row").filter({ hasText: signalTitle });
+  await row.click();
+  await expect(page.locator("h1")).toContainText(signalTitle);
+
+  // 3. Add an event to the signal
+  await page.getByRole("button", { name: "+ Event" }).click();
+  await expect(page.getByRole("heading", { name: "Add Event" })).toBeVisible();
+  await page.getByLabel("Note").fill("Some progress was made");
+  await page.getByRole("button", { name: "Add Event" }).click();
+  await expect(page.getByRole("heading", { name: "Add Event" })).not.toBeVisible();
+
+  // 4. Navigate to the calendar page for the current month
+  await page.getByRole("link", { name: "Calendar" }).click();
+  await expect(page).toHaveURL(/\/calendar/);
+
+  // 5. Verify the signal shows as "Progressed" on today's date
+  await expect(page.getByText("Progressed")).toBeVisible();
+  await expect(page.getByText(signalTitle)).toBeVisible();
+});

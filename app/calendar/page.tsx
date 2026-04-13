@@ -40,7 +40,7 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     db.signalEvent.findMany({
       where: {
         createdAt: { gte: start, lt: end },
-        eventType: { in: ["worked_today", "resolved"] },
+        eventType: { in: ["worked_today", "resolved", "note_added", "link_attached"] },
       },
       select: { eventType: true, createdAt: true, signalId: true, signal: { select: { title: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } } } } },
     }),
@@ -92,9 +92,11 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     const key = getKey(e.createdAt);
     const day = ensure(key);
     const entry = ensureSignal(day, e.signalId, e.signal.title, e.signal.sources);
-    if (e.eventType === "worked_today") {
-      day.counts.worked++;
-      entry.worked = true;
+    if (e.eventType === "worked_today" || e.eventType === "note_added" || e.eventType === "link_attached") {
+      if (!entry.worked) {
+        day.counts.worked++;
+        entry.worked = true;
+      }
     }
     if (e.eventType === "resolved") {
       day.counts.resolved++;

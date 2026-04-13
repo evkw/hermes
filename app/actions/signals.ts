@@ -169,19 +169,45 @@ export async function createSignalEvent(
   const trimmedLink =
     typeof link === "string" && link.trim().length > 0 ? link.trim() : null;
 
-  const events: Parameters<typeof db.signalEvent.create>[0][] = [
-    { data: { signalId, eventType: "note_added", note: trimmedNote } },
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const signal = await db.signal.findUniqueOrThrow({
+    where: { id: signalId },
+    select: { lastWorkedAt: true },
+  });
+
+  const alreadyWorkedToday =
+    signal.lastWorkedAt !== null && signal.lastWorkedAt >= startOfDay;
+
+  const ops: Parameters<typeof db.$transaction>[0] = [
+    db.signalEvent.create({
+      data: { signalId, eventType: "note_added", note: trimmedNote },
+    }),
   ];
 
   if (trimmedLink) {
-    events.push({
-      data: { signalId, eventType: "link_attached", link: trimmedLink },
-    });
+    ops.push(
+      db.signalEvent.create({
+        data: { signalId, eventType: "link_attached", link: trimmedLink },
+      })
+    );
   }
 
-  await db.$transaction(events.map((e) => db.signalEvent.create(e)));
+  if (!alreadyWorkedToday) {
+    ops.push(
+      db.signal.update({
+        where: { id: signalId },
+        data: { lastWorkedAt: now },
+      })
+    );
+  }
+
+  await db.$transaction(ops);
 
   revalidatePath("/signals");
+  revalidatePath("/inflight");
+  revalidatePath("/calendar");
 
   return { success: true };
 }
