@@ -97,6 +97,11 @@ app/
 │       └── page.tsx            # Standup Summary
 ```
 
+### Dynamic Pages (Required)
+- Any `page.tsx` that fetches from the database **must** export `export const dynamic = "force-dynamic";`
+- Without this, Next.js tries to statically prerender the page at build time, which fails because `DATABASE_URL` is not available during `docker build`
+- Add this export immediately after imports, before the default export
+
 ### Server Actions
 - All mutations go through Server Actions in `actions/` directory
 - Validate inputs server-side

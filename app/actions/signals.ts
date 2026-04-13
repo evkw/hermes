@@ -180,7 +180,8 @@ export async function createSignalEvent(
   const alreadyWorkedToday =
     signal.lastWorkedAt !== null && signal.lastWorkedAt >= startOfDay;
 
-  const ops: Parameters<typeof db.$transaction>[0] = [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ops: any[] = [
     db.signalEvent.create({
       data: { signalId, eventType: "note_added", note: trimmedNote },
     }),

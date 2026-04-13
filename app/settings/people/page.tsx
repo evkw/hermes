@@ -1,6 +1,8 @@
 import { getPeople } from "@/app/actions/people";
 import { PeopleView } from "./components/people-view";
 
+export const dynamic = "force-dynamic";
+
 export default async function PeoplePage() {
   const people = await getPeople();
 
