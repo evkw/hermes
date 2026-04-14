@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSignalWithEvents, unresolveSignal } from "@/app/actions/signals";
+import { getSignalWithEvents, resolveSignal, unresolveSignal } from "@/app/actions/signals";
 import { getOriginMappings } from "@/app/actions/origin-mappings";
 import { SectionCard } from "@/components/ui/section-card";
 import { Button } from "@/components/core/button";
@@ -74,6 +74,13 @@ export default async function SignalEventsPage({
                 Edit
               </Button>
             </EditSignalDialog>
+            {signal.status === "active" && (
+              <form action={resolveSignal.bind(null, signal.id)}>
+                <Button type="submit" size="sm" variant="outline">
+                  Resolve signal
+                </Button>
+              </form>
+            )}
             {signal.status === "resolved" && (
               <form action={unresolveSignal.bind(null, signal.id)}>
                 <Button type="submit" size="sm" variant="outline">
