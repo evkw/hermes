@@ -16,10 +16,15 @@ import { Textarea } from "@/components/core/textarea";
 import { Label } from "@/components/core/label";
 import { createSignal, type CreateSignalState } from "@/app/actions/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
+import { StreamPicker } from "@/app/components/stream-picker";
 
 const initialState: CreateSignalState = { success: false };
 
-export function NewSignalDialog() {
+export function NewSignalDialog({
+  streams = [],
+}: {
+  streams?: { id: string; key: string; name: string }[];
+}) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
     createSignal,
@@ -108,6 +113,8 @@ export function NewSignalDialog() {
               </p>
             )}
           </div>
+
+          <StreamPicker streams={streams} />
 
           <DialogFooter>
             <Button type="submit" disabled={pending}>

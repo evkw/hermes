@@ -59,7 +59,7 @@ export default async function SignalsPage() {
 
   const activeSignals = await db.signal.findMany({
     where: { status: "active" },
-    include: { owner: true },
+    include: { owner: true, streams: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -128,6 +128,7 @@ export default async function SignalsPage() {
                 lastWorkedLabel={relativeWorkedLabel(signal.lastWorkedAt)}
                 ownerName={signal.owner?.name ?? null}
                 isFocusedToday={true}
+                streams={signal.streams.map((s) => ({ id: s.id, key: s.key, name: s.name }))}
               />
             ))}
           </div>

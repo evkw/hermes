@@ -14,7 +14,11 @@ const navLinks = [
   { label: "Settings", href: "/settings" },
 ];
 
-export function TopNav() {
+export function TopNav({
+  streams = [],
+}: {
+  streams?: { id: string; key: string; name: string }[];
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -50,7 +54,7 @@ export function TopNav() {
 
         <div className="flex items-center gap-4">
           {/* New Signal button */}
-          <NewSignalDialog />
+          <NewSignalDialog streams={streams} />
           <MoreMenu />
           {/* Mobile hamburger */}
           <button

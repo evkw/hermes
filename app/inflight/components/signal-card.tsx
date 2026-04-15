@@ -12,6 +12,7 @@ type SignalCardProps = {
   lastWorkedLabel: string | null;
   ownerName: string | null;
   isFocusedToday: boolean;
+  streams?: { id: string; key: string; name: string }[];
 };
 
 function RiskDot({ riskLevel }: { riskLevel: RiskLevel }) {
@@ -31,6 +32,7 @@ export function SignalCard({
   lastWorkedLabel,
   ownerName,
   isFocusedToday,
+  streams = [],
 }: SignalCardProps) {
   return (
     <div className="group flex flex-col justify-between rounded-xl border border-outline-variant/40 p-5 transition-colors hover:border-outline-variant">
@@ -60,6 +62,19 @@ export function SignalCard({
           <p className="mt-1 text-xs text-outline">
             Owner: {ownerName}
           </p>
+        )}
+
+        {streams.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {streams.map((s) => (
+              <span
+                key={s.id}
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary"
+              >
+                {s.name}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 

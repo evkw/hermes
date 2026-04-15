@@ -45,6 +45,17 @@ export async function createSignal(
     }
   }
 
+  // --- Optional streams ---
+  const rawStreamIds = formData.getAll("streamIds");
+  const streamIds = rawStreamIds
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim());
+
+  const streamConnect =
+    streamIds.length > 0
+      ? { streams: { connect: streamIds.map((id) => ({ id })) } }
+      : {};
+
   if (trimmedUrl) {
     const { type, label } = await detectSource(trimmedUrl);
 
@@ -52,6 +63,7 @@ export async function createSignal(
       data: {
         title: trimmedTitle,
         description: trimmedDescription,
+        ...streamConnect,
       },
     });
 
@@ -76,6 +88,7 @@ export async function createSignal(
       data: {
         title: trimmedTitle,
         description: trimmedDescription,
+        ...streamConnect,
       },
     });
   }
@@ -276,6 +289,7 @@ export async function getSignalWithEvents(signalId: string) {
       owner: true,
       events: { orderBy: { createdAt: "desc" } },
       sources: { orderBy: { createdAt: "desc" } },
+      streams: true,
     },
   });
 
@@ -484,7 +498,10 @@ export async function updateSignal(
       ? rawOwnerId.trim()
       : null;
 
-  const existing = await db.signal.findUnique({ where: { id: signalId } });
+  const existing = await db.signal.findUnique({
+    where: { id: signalId },
+    include: { streams: { select: { id: true } } },
+  });
   if (!existing) {
     return { success: false, error: "Signal not found" };
   }
@@ -497,13 +514,25 @@ export async function updateSignal(
     }
   }
 
+  // --- Stream changes ---
+  const rawStreamIds = formData.getAll("streamIds");
+  const newStreamIds = rawStreamIds
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim())
+    .sort();
+  const existingStreamIds = existing.streams.map((s) => s.id).sort();
+  const streamsChanged =
+    newStreamIds.length !== existingStreamIds.length ||
+    newStreamIds.some((id, i) => id !== existingStreamIds[i]);
+
   const ownerChanged = (existing.ownerId ?? null) !== ownerId;
 
   // No-op detection: skip write if nothing changed
   if (
     existing.title === trimmedTitle &&
     (existing.description ?? null) === trimmedDescription &&
-    !ownerChanged
+    !ownerChanged &&
+    !streamsChanged
   ) {
     return { success: true };
   }
@@ -517,7 +546,14 @@ export async function updateSignal(
   const ops: any[] = [
     db.signal.update({
       where: { id: signalId },
-      data: { title: trimmedTitle, description: trimmedDescription, ownerId },
+      data: {
+        title: trimmedTitle,
+        description: trimmedDescription,
+        ownerId,
+        ...(streamsChanged
+          ? { streams: { set: newStreamIds.map((id) => ({ id })) } }
+          : {}),
+      },
     }),
   ];
 
@@ -547,6 +583,18 @@ export async function updateSignal(
           signalId,
           eventType: "owner_changed",
           note: ownerNote,
+        },
+      })
+    );
+  }
+
+  if (streamsChanged) {
+    ops.push(
+      db.signalEvent.create({
+        data: {
+          signalId,
+          eventType: "streams_changed",
+          note: newStreamIds.length > 0 ? "Streams updated" : "All streams removed",
         },
       })
     );

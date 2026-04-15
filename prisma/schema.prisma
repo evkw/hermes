@@ -32,6 +32,7 @@ enum SignalEventType {
   source_added
   source_removed
   owner_changed
+  streams_changed
 }
 
 // -- Models --
@@ -54,6 +55,7 @@ model Signal {
   events  SignalEvent[]
   sources SignalSource[]
   summaryExclusions SummaryExclusion[]
+  streams Stream[]
 
   @@index([status])
   @@index([riskLevel])
@@ -128,4 +130,15 @@ model SummaryExclusion {
   @@unique([signalId, date])
   @@index([signalId])
   @@index([date])
+}
+
+model Stream {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  signals Signal[]
+
+  @@index([key])
 }

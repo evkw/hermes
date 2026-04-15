@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getSignalWithEvents, resolveSignal, unresolveSignal } from "@/app/actions/signals";
 import { getOriginMappings } from "@/app/actions/origin-mappings";
+import { getStreams } from "@/app/actions/streams";
 import { SectionCard } from "@/components/ui/section-card";
 import { Button } from "@/components/core/button";
 import { EventsDataTable } from "./components/events-data-table";
@@ -20,10 +21,11 @@ export default async function SignalEventsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [signal, mappings, people] = await Promise.all([
+  const [signal, mappings, people, allStreams] = await Promise.all([
     getSignalWithEvents(id),
     getOriginMappings(),
     getPeople(),
+    getStreams(),
   ]);
 
   if (!signal) {
@@ -61,6 +63,18 @@ export default async function SignalEventsPage({
                 Owner: {signal.owner.name}
               </p>
             )}
+            {signal.streams && signal.streams.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {signal.streams.map((stream) => (
+                  <span
+                    key={stream.id}
+                    className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary"
+                  >
+                    {stream.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <EditSignalDialog
@@ -69,6 +83,8 @@ export default async function SignalEventsPage({
               signalDescription={signal.description}
               currentOwnerId={signal.ownerId}
               people={people.map((p) => ({ id: p.id, name: p.name }))}
+              streams={allStreams.map((s) => ({ id: s.id, key: s.key, name: s.name }))}
+              currentStreamIds={signal.streams?.map((s) => s.id) ?? []}
             >
               <Button size="sm" variant="outline">
                 Edit

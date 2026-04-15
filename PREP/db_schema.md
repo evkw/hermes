@@ -246,7 +246,7 @@ If any of these are introduced, the schema should be reviewed immediately:
 - automatic signal creation
 - merge/split workflows
 - AI-generated briefings persisted to history
-- spaces like work/personal/project
+- spaces like work/personal/project (replaced by Streams — see below)
 - recurring focus history instead of one date field
 - attachments/files stored directly in Hermes
 - comments or collaboration from multiple people
@@ -260,4 +260,48 @@ Build V1 on just:
 - `signal_events`
 
 That is enough to support the current manual-first product without dragging future Hermes concerns back into the implementation.
+
+---
+
+## Streams (Added Post-V1 Core)
+
+Streams replace the originally planned Space concept. They provide optional, multi-dimensional categorisation for signals.
+
+### 3. `streams`
+Reusable classification labels.
+
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| `id` | string / cuid | yes | Primary key |
+| `key` | string | yes | Unique lowercase slug (e.g. `work`, `personal`, `project-xyz`) |
+| `name` | string | yes | Display label |
+| `created_at` | datetime | yes | When the stream was created |
+
+### `_SignalToStream` (implicit join table)
+Many-to-many relation between signals and streams.
+
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| `A` | string | yes | FK to `signals.id` |
+| `B` | string | yes | FK to `streams.id` |
+
+- Composite primary key on (`A`, `B`)
+- Both FKs cascade delete
+
+### Relationships
+- One `signal` can have 0..N `streams`
+- One `stream` can be assigned to 0..N `signals`
+
+### Indexes
+- unique index on `streams.key`
+- index on `_SignalToStream.B`
+
+### `signal_event_type` additions
+- `streams_changed` — logged when streams are added/removed from a signal
+
+### Design Notes
+- Signals can exist with no streams (no classification required)
+- Streams can be added/removed at any time
+- Deletion of a stream is blocked if it is assigned to any signal
+- The `key` field enables programmatic filtering via URL params
 

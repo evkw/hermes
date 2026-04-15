@@ -16,6 +16,7 @@ import { Textarea } from "@/components/core/textarea";
 import { Label } from "@/components/core/label";
 import { updateSignal, type UpdateSignalState } from "@/app/actions/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
+import { StreamPicker } from "@/app/components/stream-picker";
 
 const initialState: UpdateSignalState = { success: false };
 
@@ -25,6 +26,8 @@ export function EditSignalDialog({
   signalDescription,
   currentOwnerId,
   people,
+  streams = [],
+  currentStreamIds = [],
   children,
 }: {
   signalId: string;
@@ -32,6 +35,8 @@ export function EditSignalDialog({
   signalDescription: string | null;
   currentOwnerId?: string | null;
   people?: { id: string; name: string }[];
+  streams?: { id: string; key: string; name: string }[];
+  currentStreamIds?: string[];
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -117,6 +122,8 @@ export function EditSignalDialog({
               </select>
             </div>
           )}
+
+          <StreamPicker streams={streams} selectedIds={currentStreamIds} />
 
           <DialogFooter>
             <Button type="submit" disabled={pending}>

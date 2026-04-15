@@ -235,6 +235,22 @@ async function main() {
   const db = new PrismaClient({ adapter });
 
   try {
+    // Ensure default streams exist
+    const defaultStreams = [
+      { key: "work", name: "Work" },
+      { key: "personal", name: "Personal" },
+    ];
+    const streamIds: string[] = [];
+    for (const s of defaultStreams) {
+      const stream = await db.stream.upsert({
+        where: { key: s.key },
+        update: {},
+        create: s,
+      });
+      streamIds.push(stream.id);
+    }
+    console.log(`Ensured ${defaultStreams.length} default streams (work, personal).`);
+
     // Build signal data
     type SignalInput = Parameters<typeof db.signal.create>[0]["data"];
     const signalInputs: SignalInput[] = [];
@@ -303,6 +319,15 @@ async function main() {
           });
         }
 
+        // Randomly assign streams: ~20% none, ~50% one, ~30% both
+        const streamRoll = Math.random();
+        const assignedStreamIds: string[] =
+          streamRoll < 0.2
+            ? []
+            : streamRoll < 0.7
+              ? [pick(streamIds)]
+              : [...streamIds];
+
         signalInputs.push({
           title,
           description,
@@ -313,6 +338,9 @@ async function main() {
           resolvedAt: resolvedAt ?? null,
           lastWorkedAt: lastWorkedAt ?? null,
           events: { create: events },
+          ...(assignedStreamIds.length > 0
+            ? { streams: { connect: assignedStreamIds.map((id) => ({ id })) } }
+            : {}),
         });
       }
     }

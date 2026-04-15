@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { SectionCard } from "@/components/ui/section-card";
 import { SignalsDataTable } from "./components/signals-data-table";
+import { getStreams } from "@/app/actions/streams";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,10 @@ export default async function SignalsTablePage({
   const q = typeof params.q === "string" ? params.q.trim() : "";
   const showResolved = params.resolved === "1";
 
+  const streamFilter = typeof params.streams === "string" && params.streams.trim().length > 0
+    ? params.streams.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
   const statusFilter = showResolved ? {} : { status: "active" as const };
   const searchFilter = q
     ? {
@@ -54,18 +59,25 @@ export default async function SignalsTablePage({
       }
     : {};
 
-  const where = { ...statusFilter, ...searchFilter };
+  const where = {
+    ...statusFilter,
+    ...searchFilter,
+    ...(streamFilter.length > 0
+      ? { streams: { some: { key: { in: streamFilter } } } }
+      : {}),
+  };
 
-  const [signals, filteredCount, totalCount] = await Promise.all([
+  const [signals, filteredCount, totalCount, allStreams] = await Promise.all([
     db.signal.findMany({
       where,
       orderBy: buildOrderBy(sort, order),
-      include: { owner: true, _count: { select: { events: true } } },
+      include: { owner: true, streams: true, _count: { select: { events: true } } },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
     db.signal.count({ where }),
     db.signal.count(),
+    getStreams(),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
@@ -83,6 +95,7 @@ export default async function SignalsTablePage({
     focusedOnDate: s.focusedOnDate?.toISOString() ?? null,
     eventCount: s._count.events,
     ownerName: s.owner?.name ?? null,
+    streams: s.streams.map((st) => ({ id: st.id, key: st.key, name: st.name })),
   }));
 
   return (
@@ -109,6 +122,8 @@ export default async function SignalsTablePage({
           order={order}
           q={q}
           showResolved={showResolved}
+          streams={allStreams.map((s) => ({ id: s.id, key: s.key, name: s.name }))}
+          activeStreams={streamFilter}
         />
       </SectionCard>
     </div>

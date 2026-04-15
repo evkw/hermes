@@ -34,6 +34,7 @@ type SignalRow = {
   focusedOnDate: string | null;
   eventCount: number;
   ownerName: string | null;
+  streams: { id: string; key: string; name: string }[];
 };
 
 function RiskDot({ riskLevel }: { riskLevel: string }) {
@@ -89,8 +90,18 @@ const columns: ColumnDef<SignalRow>[] = [
           <p className="text-xs text-secondary truncate mt-0.5">
             {row.original.description}
           </p>
-        )}
-      </div>
+        )}        {row.original.streams.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {row.original.streams.map((s) => (
+              <span
+                key={s.id}
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary"
+              >
+                {s.name}
+              </span>
+            ))}
+          </div>
+        )}      </div>
     ),
   },
   {
@@ -166,13 +177,14 @@ const columns: ColumnDef<SignalRow>[] = [
   },
 ];
 
-function buildHref(params: { page?: number; sort?: string; order?: string; q?: string; resolved?: boolean }) {
+function buildHref(params: { page?: number; sort?: string; order?: string; q?: string; resolved?: boolean; streams?: string[] }) {
   const sp = new URLSearchParams();
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   if (params.sort && params.sort !== "createdAt") sp.set("sort", params.sort);
   if (params.order && params.order !== "desc") sp.set("order", params.order);
   if (params.q) sp.set("q", params.q);
   if (params.resolved) sp.set("resolved", "1");
+  if (params.streams && params.streams.length > 0) sp.set("streams", params.streams.join(","));
   const qs = sp.toString();
   return `/signals${qs ? `?${qs}` : ""}`;
 }
@@ -185,6 +197,8 @@ export function SignalsDataTable({
   order,
   q,
   showResolved,
+  streams = [],
+  activeStreams = [],
 }: {
   data: SignalRow[];
   page: number;
@@ -193,6 +207,8 @@ export function SignalsDataTable({
   order: "asc" | "desc";
   q: string;
   showResolved: boolean;
+  streams?: { id: string; key: string; name: string }[];
+  activeStreams?: string[];
 }) {
   const router = useRouter();
   const sorting: SortingState = [{ id: sort, desc: order === "desc" }];
@@ -210,10 +226,10 @@ export function SignalsDataTable({
       setSearchValue(value);
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        router.push(buildHref({ page: 1, sort, order, q: value.trim(), resolved }));
+        router.push(buildHref({ page: 1, sort, order, q: value.trim(), resolved, streams: activeStreams }));
       }, 300);
     },
-    [sort, order, resolved, router]
+    [sort, order, resolved, activeStreams, router]
   );
 
   useEffect(() => {
@@ -225,24 +241,24 @@ export function SignalsDataTable({
         return;
       }
       if (e.key === "ArrowLeft" && page > 1) {
-        router.push(buildHref({ page: page - 1, sort, order, q, resolved }));
+        router.push(buildHref({ page: page - 1, sort, order, q, resolved, streams: activeStreams }));
       } else if (e.key === "ArrowRight" && page < totalPages) {
-        router.push(buildHref({ page: page + 1, sort, order, q, resolved }));
+        router.push(buildHref({ page: page + 1, sort, order, q, resolved, streams: activeStreams }));
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [page, totalPages, sort, order, q, resolved, router]);
+  }, [page, totalPages, sort, order, q, resolved, activeStreams, router]);
 
   const handleSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
       if (next.length === 0) {
-        router.push(buildHref({ page: 1, q, resolved }));
+        router.push(buildHref({ page: 1, q, resolved, streams: activeStreams }));
       } else {
         const col = next[0];
         router.push(
-          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc", q, resolved })
+          buildHref({ page: 1, sort: col.id, order: col.desc ? "desc" : "asc", q, resolved, streams: activeStreams })
         );
       }
     },
@@ -271,13 +287,52 @@ export function SignalsDataTable({
             type="checkbox"
             checked={showResolved}
             onChange={() =>
-              router.push(buildHref({ page: 1, sort, order, q, resolved: !showResolved }))
+              router.push(buildHref({ page: 1, sort, order, q, resolved: !showResolved, streams: activeStreams }))
             }
             className="accent-on-surface"
           />
           Show resolved
         </label>
       </div>
+
+      {streams.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-secondary mr-1">Streams:</span>
+          {streams.map((stream) => {
+            const isActive = activeStreams.includes(stream.key);
+            return (
+              <button
+                key={stream.id}
+                type="button"
+                onClick={() => {
+                  const next = isActive
+                    ? activeStreams.filter((k) => k !== stream.key)
+                    : [...activeStreams, stream.key];
+                  router.push(buildHref({ page: 1, sort, order, q, resolved, streams: next }));
+                }}
+                className={
+                  isActive
+                    ? "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary border border-primary/30 transition-colors"
+                    : "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-outline-variant/10 text-secondary border border-outline-variant/30 hover:border-outline-variant/60 transition-colors"
+                }
+              >
+                {stream.name}
+              </button>
+            );
+          })}
+          {activeStreams.length > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                router.push(buildHref({ page: 1, sort, order, q, resolved, streams: [] }))
+              }
+              className="text-xs text-secondary hover:text-on-surface transition-colors ml-1"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="rounded-lg border border-outline-variant/40">
         <Table>
@@ -349,14 +404,14 @@ export function SignalsDataTable({
           </p>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Link href={buildHref({ page: page - 1, sort, order, q, resolved })}>
+              <Link href={buildHref({ page: page - 1, sort, order, q, resolved, streams: activeStreams })}>
                 <Button variant="outline" size="sm">Previous</Button>
               </Link>
             ) : (
               <Button variant="outline" size="sm" disabled>Previous</Button>
             )}
             {page < totalPages ? (
-              <Link href={buildHref({ page: page + 1, sort, order, q, resolved })}>
+              <Link href={buildHref({ page: page + 1, sort, order, q, resolved, streams: activeStreams })}>
                 <Button variant="outline" size="sm">Next</Button>
               </Link>
             ) : (
