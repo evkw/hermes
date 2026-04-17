@@ -17,6 +17,7 @@ export type DaySignalActivity = {
   resolved: boolean;
   primarySourceUrl?: string;
   excludedFromSummary: boolean;
+  streams: { id: string; name: string }[];
 };
 
 export type DayDetail = {
@@ -35,14 +36,14 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
       where: {
         createdAt: { gte: start, lt: end },
       },
-      select: { id: true, title: true, createdAt: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } } },
+      select: { id: true, title: true, createdAt: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } }, streams: { select: { id: true, name: true } } },
     }),
     db.signalEvent.findMany({
       where: {
         createdAt: { gte: start, lt: end },
         eventType: { in: ["worked_today", "resolved", "note_added", "link_attached"] },
       },
-      select: { eventType: true, createdAt: true, signalId: true, signal: { select: { title: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } } } } },
+      select: { eventType: true, createdAt: true, signalId: true, signal: { select: { title: true, sources: { select: { url: true }, orderBy: { createdAt: "asc" } }, streams: { select: { id: true, name: true } } } } },
     }),
     db.summaryExclusion.findMany({
       where: { date: { gte: start, lt: end } },
@@ -68,10 +69,10 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     return data[key];
   }
 
-  function ensureSignal(day: DayDetail, signalId: string, title: string, sources?: { url: string | null }[]): DaySignalActivity {
+  function ensureSignal(day: DayDetail, signalId: string, title: string, sources?: { url: string | null }[], streams?: { id: string; name: string }[]): DaySignalActivity {
     let entry = day.signals.find((s) => s.signalId === signalId);
     if (!entry) {
-      entry = { signalId, title, created: false, worked: false, resolved: false, excludedFromSummary: false };
+      entry = { signalId, title, created: false, worked: false, resolved: false, excludedFromSummary: false, streams: streams ?? [] };
       day.signals.push(entry);
     }
     if (!entry.primarySourceUrl && sources) {
@@ -85,13 +86,13 @@ async function getMonthData(year: number, month: number): Promise<MonthData> {
     const key = getKey(s.createdAt);
     const day = ensure(key);
     day.counts.created++;
-    ensureSignal(day, s.id, s.title, s.sources).created = true;
+    ensureSignal(day, s.id, s.title, s.sources, s.streams).created = true;
   }
 
   for (const e of events) {
     const key = getKey(e.createdAt);
     const day = ensure(key);
-    const entry = ensureSignal(day, e.signalId, e.signal.title, e.signal.sources);
+    const entry = ensureSignal(day, e.signalId, e.signal.title, e.signal.sources, e.signal.streams);
     if (e.eventType === "worked_today" || e.eventType === "note_added" || e.eventType === "link_attached") {
       if (!entry.worked) {
         day.counts.worked++;
@@ -125,11 +126,14 @@ export default async function CalendarPage({
   const year = params.year ? parseInt(params.year, 10) : now.getFullYear();
   const month = params.month ? parseInt(params.month, 10) - 1 : now.getMonth();
 
-  const monthData = await getMonthData(year, month);
+  const [monthData, streamCount] = await Promise.all([
+    getMonthData(year, month),
+    db.stream.count(),
+  ]);
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 md:px-12 py-8">
-      <CalendarView year={year} month={month} data={monthData} />
+      <CalendarView year={year} month={month} data={monthData} hasStreams={streamCount > 0} />
     </div>
   );
 }

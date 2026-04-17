@@ -34,14 +34,18 @@ function dayKey(year: number, month: number, day: number): string {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+export type SummaryMode = "by-day" | "by-stream";
+
 export function CalendarView({
     year,
     month,
     data,
+    hasStreams,
 }: {
     year: number;
     month: number;
     data: MonthData;
+    hasStreams: boolean;
 }) {
     const router = useRouter();
     const daysInMonth = getDaysInMonth(year, month);
@@ -57,6 +61,7 @@ export function CalendarView({
     const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set([defaultDay]));
     const [cursor, setCursor] = useState<number>(defaultDay);
     const [editMode, setEditMode] = useState(false);
+    const [summaryMode, setSummaryMode] = useState<SummaryMode>("by-day");
     const summaryTableRef = useRef<HTMLTableElement>(null);
 
     useEffect(() => {
@@ -226,6 +231,33 @@ export function CalendarView({
             tableRef={summaryTableRef}
             editMode={editMode}
             onExitEditMode={() => setEditMode(false)}
+            summaryMode={hasStreams ? summaryMode : "by-day"}
+            modeToggle={hasStreams ? (
+                <div className="flex gap-1">
+                    <button
+                        type="button"
+                        onClick={() => setSummaryMode("by-day")}
+                        className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                            summaryMode === "by-day"
+                                ? "border-primary text-primary"
+                                : "border-outline-variant/40 text-secondary hover:text-on-surface hover:border-outline"
+                        }`}
+                    >
+                        By Day
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSummaryMode("by-stream")}
+                        className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                            summaryMode === "by-stream"
+                                ? "border-primary text-primary"
+                                : "border-outline-variant/40 text-secondary hover:text-on-surface hover:border-outline"
+                        }`}
+                    >
+                        By Stream
+                    </button>
+                </div>
+            ) : null}
         />
         </>
     );

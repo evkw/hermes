@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useCallback, useTransition, useEffect } from "react";
 import type { MonthData, DaySignalActivity } from "../page";
+import type { SummaryMode } from "./calendar-view";
 import { SectionCard } from "@/components/ui/section-card";
 import { ExternalLink, Eye, EyeOff } from "lucide-react";
 import { toggleSummaryExclusion } from "@/app/actions/signals";
@@ -20,11 +21,12 @@ export type SummaryItem = {
     title: string;
     url?: string;
     excludedFromSummary: boolean;
+    streams: { id: string; name: string }[];
 };
 
 function summarizeSignals(signals: DaySignalActivity[]): SummaryItem[] {
     return signals.map((s) => {
-        const base = { signalId: s.signalId, title: s.title, url: s.primarySourceUrl, excludedFromSummary: s.excludedFromSummary };
+        const base = { signalId: s.signalId, title: s.title, url: s.primarySourceUrl, excludedFromSummary: s.excludedFromSummary, streams: s.streams };
         if (s.resolved) return { label: "Resolved", ...base };
         if (s.created) return { label: "Started", ...base };
         if (s.worked) return { label: "Progressed", ...base };
@@ -43,10 +45,19 @@ type DayEntry = {
     dateKey: string;
 };
 
-/** Flat row for keyboard navigation — either a day header or an item row */
+/** Flat row for keyboard navigation — either a day header, stream header, or an item row */
 type FlatRow =
     | { type: "header"; dayEntry: DayEntry }
+    | { type: "stream-header"; group: StreamGroup }
     | { type: "item"; item: SummaryItem; dateKey: string; flatIndex: number };
+
+type StreamGroup = {
+    key: string;
+    label: string;
+    items: SummaryItem[];
+    /** Use the first signal's dateKey for hide/unhide in stream mode */
+    dateKeys: Map<string, string>;
+};
 
 function buildFlatRows(dayEntries: DayEntry[], isSingleDay: boolean): FlatRow[] {
     const rows: FlatRow[] = [];
@@ -60,6 +71,57 @@ function buildFlatRows(dayEntries: DayEntry[], isSingleDay: boolean): FlatRow[] 
             for (const item of d.items) {
                 rows.push({ type: "item", item, dateKey: d.dateKey, flatIndex: rows.length });
             }
+        }
+    }
+    return rows;
+}
+
+function buildStreamGroups(dayEntries: DayEntry[]): StreamGroup[] {
+    // Collect unique signals across all days, keeping best label (Resolved > Started > Progressed > Touched)
+    const seen = new Map<string, { item: SummaryItem; dateKey: string }>();
+    const labelRank: Record<string, number> = { Resolved: 3, Started: 2, Progressed: 1, Touched: 0 };
+
+    for (const d of dayEntries) {
+        for (const item of d.items) {
+            const existing = seen.get(item.signalId);
+            if (!existing || (labelRank[item.label] ?? 0) > (labelRank[existing.item.label] ?? 0)) {
+                seen.set(item.signalId, { item, dateKey: d.dateKey });
+            }
+        }
+    }
+
+    // Group by normalized stream combination
+    const groupMap = new Map<string, StreamGroup>();
+    for (const { item, dateKey } of seen.values()) {
+        const sortedNames = item.streams.map((s) => s.name).sort();
+        const key = sortedNames.join("|") || "";
+        const label = sortedNames.length > 0 ? sortedNames.join(" > ") : "Misc";
+        if (!groupMap.has(key)) {
+            groupMap.set(key, { key, label, items: [], dateKeys: new Map() });
+        }
+        const group = groupMap.get(key)!;
+        group.items.push(item);
+        group.dateKeys.set(item.signalId, dateKey);
+    }
+
+    return Array.from(groupMap.values()).sort((a, b) => {
+        // Misc always last
+        if (a.key === "" && b.key !== "") return 1;
+        if (b.key === "" && a.key !== "") return -1;
+        // Most signals first
+        return b.items.length - a.items.length;
+    });
+}
+
+function buildStreamFlatRows(groups: StreamGroup[]): FlatRow[] {
+    const rows: FlatRow[] = [];
+    const isSingleGroup = groups.length === 1;
+    for (const group of groups) {
+        if (!isSingleGroup) {
+            rows.push({ type: "stream-header", group });
+        }
+        for (const item of group.items) {
+            rows.push({ type: "item", item, dateKey: group.dateKeys.get(item.signalId) ?? "", flatIndex: rows.length });
         }
     }
     return rows;
@@ -169,6 +231,8 @@ export function DaySummary({
     tableRef: externalTableRef,
     editMode,
     onExitEditMode,
+    summaryMode,
+    modeToggle,
 }: {
     year: number;
     month: number;
@@ -177,6 +241,8 @@ export function DaySummary({
     tableRef: React.RefObject<HTMLTableElement | null>;
     editMode: boolean;
     onExitEditMode: () => void;
+    summaryMode: SummaryMode;
+    modeToggle: React.ReactNode;
 }) {
     const sortedDays = Array.from(selectedDays).sort((a, b) => a - b);
     const tableRef = externalTableRef;
@@ -193,7 +259,11 @@ export function DaySummary({
     const isSingleDay = sortedDays.length === 1;
     const hasItems = dayEntries.some((d) => d.items.length > 0);
 
-    const flatRows = buildFlatRows(dayEntries, isSingleDay);
+    const isStreamMode = summaryMode === "by-stream";
+    const streamGroups = isStreamMode ? buildStreamGroups(dayEntries) : [];
+    const flatRows = isStreamMode
+        ? buildStreamFlatRows(streamGroups)
+        : buildFlatRows(dayEntries, isSingleDay);
     const itemIndices = getItemRowIndices(flatRows);
 
     const [focusedRowIdx, setFocusedRowIdx] = useState<number>(-1);
@@ -215,6 +285,17 @@ export function DaySummary({
     function buildSummaryText(): string {
         function formatItem(i: SummaryItem): string {
             return i.url ? `• ${i.label} [${i.title}](${i.url})` : `• ${i.label} ${i.title}`;
+        }
+        if (isStreamMode) {
+            return streamGroups
+                .map((g) => {
+                    const header = `### ${g.label}`;
+                    const included = g.items.filter((i) => !i.excludedFromSummary);
+                    if (included.length === 0) return header;
+                    const bullets = included.map(formatItem).join("\n");
+                    return `${header}\n${bullets}`;
+                })
+                .join("\n\n");
         }
         if (isSingleDay) {
             const included = dayEntries[0].items.filter((i) => !i.excludedFromSummary);
@@ -314,15 +395,18 @@ export function DaySummary({
         <SectionCard
             title={titleLabel}
             actions={
-                hasAnyIncludedItems ? (
-                    <button
-                        type="button"
-                        onClick={() => navigator.clipboard.writeText(buildSummaryText())}
-                        className="px-3 py-1.5 text-sm rounded-md border border-outline-variant/40 text-secondary hover:text-on-surface hover:border-outline transition-colors"
-                    >
-                        Copy
-                    </button>
-                ) : null
+                <div className="flex items-center gap-2">
+                    {modeToggle}
+                    {hasAnyIncludedItems ? (
+                        <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(buildSummaryText())}
+                            className="px-3 py-1.5 text-sm rounded-md border border-outline-variant/40 text-secondary hover:text-on-surface hover:border-outline transition-colors"
+                        >
+                            Copy
+                        </button>
+                    ) : null}
+                </div>
             }
             className="mt-4"
         >
@@ -353,6 +437,22 @@ export function DaySummary({
                                             >
                                                 {row.dayEntry.dayOfWeek}
                                                 {row.dayEntry.items.length === 0 && (
+                                                    <span className="text-secondary font-normal ml-2">—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+
+                                if (row.type === "stream-header") {
+                                    return (
+                                        <tr key={`stream-${row.group.key}`}>
+                                            <td
+                                                colSpan={4}
+                                                className={`text-sm font-medium text-on-surface py-2 ${i > 0 ? "pt-4" : ""}`}
+                                            >
+                                                {row.group.label}
+                                                {row.group.items.length === 0 && (
                                                     <span className="text-secondary font-normal ml-2">—</span>
                                                 )}
                                             </td>

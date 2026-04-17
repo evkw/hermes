@@ -22,7 +22,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const streams = await getStreams();
+  // getStreams may fail during static prerendering (e.g. /_not-found) when
+  // DATABASE_URL is not available at build time. Fallback to empty array.
+  const streams = await getStreams().catch(() => []);
 
   return (
     <html lang="en" className={cn("h-full", "antialiased", inter.variable, "font-sans", geist.variable)}>
