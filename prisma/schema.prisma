@@ -33,6 +33,10 @@ enum SignalEventType {
   source_removed
   owner_changed
   streams_changed
+  checklist_item_added
+  checklist_item_completed
+  checklist_item_uncompleted
+  checklist_item_deleted
 }
 
 // -- Models --
@@ -56,6 +60,7 @@ model Signal {
   sources SignalSource[]
   summaryExclusions SummaryExclusion[]
   streams Stream[]
+  checklistItems SignalChecklistItem[]
 
   @@index([status])
   @@index([riskLevel])
@@ -141,4 +146,18 @@ model Stream {
   signals Signal[]
 
   @@index([key])
+}
+
+model SignalChecklistItem {
+  id          String    @id @default(cuid())
+  signalId    String
+  title       String
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  note        String?
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId])
 }

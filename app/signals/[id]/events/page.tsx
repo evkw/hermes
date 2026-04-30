@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSignalWithEvents, resolveSignal, unresolveSignal } from "@/app/actions/signals";
+import { getSignalWithEvents, unresolveSignal } from "@/app/actions/signals";
 import { getOriginMappings } from "@/app/actions/origin-mappings";
 import { getStreams } from "@/app/actions/streams";
 import { SectionCard } from "@/components/ui/section-card";
@@ -10,6 +10,9 @@ import { SourceFormDialog } from "./components/source-form-dialog";
 import { EditSignalDialog } from "@/app/components/edit-signal-dialog";
 import { NewEventDialog } from "@/app/components/new-event-dialog";
 import { getPeople } from "@/app/actions/people";
+import { ChecklistSection } from "./components/checklist-section";
+import { AddChecklistItemDialog } from "./components/add-checklist-item-dialog";
+import { ResolveButton } from "./components/resolve-button";
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -91,11 +94,12 @@ export default async function SignalEventsPage({
               </Button>
             </EditSignalDialog>
             {signal.status === "active" && (
-              <form action={resolveSignal.bind(null, signal.id)}>
-                <Button type="submit" size="sm" variant="outline">
-                  Resolve signal
-                </Button>
-              </form>
+              <ResolveButton
+                signalId={signal.id}
+                incompleteChecklistCount={
+                  signal.checklistItems.filter((i) => !i.isCompleted).length
+                }
+              />
             )}
             {signal.status === "resolved" && (
               <form action={unresolveSignal.bind(null, signal.id)}>
@@ -144,6 +148,25 @@ export default async function SignalEventsPage({
       >
         <EventsDataTable data={rows} />
       </SectionCard>
+
+      <section className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06)] p-6">
+        <ChecklistSection
+          items={signal.checklistItems.map((i) => ({
+            id: i.id,
+            title: i.title,
+            isCompleted: i.isCompleted,
+            completedAt: i.completedAt?.toISOString() ?? null,
+            note: i.note,
+          }))}
+          addButton={
+            <AddChecklistItemDialog signalId={signal.id}>
+              <Button size="sm" variant="outline">
+                Add item
+              </Button>
+            </AddChecklistItemDialog>
+          }
+        />
+      </section>
     </div>
   );
 }
