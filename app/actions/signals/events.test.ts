@@ -32,7 +32,7 @@ import {
   createSignalEvent,
   updateSignalOwner,
   toggleSummaryExclusion,
-} from "./signal-events";
+} from "./events";
 
 function formData(entries: Record<string, string>): FormData {
   const fd = new FormData();

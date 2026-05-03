@@ -31,7 +31,7 @@ vi.mock("@/lib/sources", () => ({
   detectSource: vi.fn().mockResolvedValue({ type: "link", label: "Link" }),
 }));
 
-import { createSignal, updateSignal, getSignalWithEvents } from "./signal-crud";
+import { createSignal, updateSignal, getSignalWithEvents } from "./crud";
 
 function formData(entries: Record<string, string | string[]>): FormData {
   const fd = new FormData();

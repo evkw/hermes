@@ -28,7 +28,7 @@ import {
   unfocusSignal,
   getFocusedSignals,
   displaceAndFocusSignal,
-} from "./signal-focus";
+} from "./focus";
 
 function formData(entries: Record<string, string>): FormData {
   const fd = new FormData();

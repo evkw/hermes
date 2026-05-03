@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function EmptyFocus() {
     return (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant/60 py-12 px-6 text-center">
@@ -9,18 +11,18 @@ export function EmptyFocus() {
             </p>
 
             <div className="mt-6 flex items-center gap-3">
-                <a
+                <Link
                     href="/"
                     className="inline-flex h-9 items-center rounded-lg bg-on-surface px-4 text-sm font-medium text-surface transition-colors hover:bg-on-surface/85"
                 >
                     Start Morning Brief
-                </a>
-                <a
-                    href="#everything-else"
+                </Link>
+                <Link
+                    href="/signals"
                     className="inline-flex h-9 items-center rounded-lg border border-outline-variant/60 bg-surface px-4 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container"
                 >
-                    Focus on a signal below
-                </a>
+                    Browse signals
+                </Link>
             </div>
         </div>
     );

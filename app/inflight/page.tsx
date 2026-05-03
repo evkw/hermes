@@ -1,45 +1,25 @@
 import { db } from "@/lib/db";
-import { SignalCard } from "./components/signal-card";
+import { SectionCard } from "@/components/ui/section-card";
 import { EmptyFocus } from "./components/empty-focus";
-import type { RiskLevel } from "@/app/generated/prisma/enums";
+import { SignalList } from "./components/signal-list";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-import { SignalList } from "./components/signal-list";
-import { SectionCard } from "@/components/ui/section-card";
-
-const RISK_ORDER: Record<RiskLevel, number> = {
-  needs_attention: 0,
-  at_risk: 1,
-  active: 2,
-};
-
-function sortByRiskThenDate<T extends { riskLevel: RiskLevel; createdAt: Date }>(
-  signals: T[]
-): T[] {
-  return signals.sort((a, b) => {
-    const riskDiff = RISK_ORDER[a.riskLevel] - RISK_ORDER[b.riskLevel];
-    if (riskDiff !== 0) return riskDiff;
-    return b.createdAt.getTime() - a.createdAt.getTime();
-  });
-}
-
-function relativeWorkedLabel(lastWorkedAt: Date | null): string | null {
-  if (!lastWorkedAt) return null;
-  const now = new Date();
-  const diffMs = now.getTime() - lastWorkedAt.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Worked today";
-  if (diffDays === 1) return "Worked yesterday";
-  return `Worked ${diffDays} days ago`;
-}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
+  });
+}
+
+function formatFocusedOnDate(date: Date | null): string | null {
+  if (!date) return null;
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 }
 
@@ -50,21 +30,16 @@ export default async function SignalsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const focusedSignals = sortByRiskThenDate(
-    activeSignals.filter((s) => s.isFocused)
-  );
-  const MAX_DISPLAY = 6;
-  const visibleFocused = focusedSignals.slice(0, MAX_DISPLAY);
-  const everythingElse = activeSignals
-    .filter((s) => !s.isFocused)
+  const focusedSignals = activeSignals
+    .filter((s) => s.isFocused)
     .sort((a, b) => {
-      const riskDiff = RISK_ORDER[a.riskLevel] - RISK_ORDER[b.riskLevel];
-      if (riskDiff !== 0) return riskDiff;
-      return a.createdAt.getTime() - b.createdAt.getTime();
-    })
-    .slice(0, MAX_DISPLAY);
-
-
+      const left = a.focusedAt?.getTime() ?? Number.POSITIVE_INFINITY;
+      const right = b.focusedAt?.getTime() ?? Number.POSITIVE_INFINITY;
+      if (left !== right) return left - right;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
+  const MAX_DISPLAY = 5;
+  const visibleFocused = focusedSignals.slice(0, MAX_DISPLAY);
 
   return (
     <div>
@@ -81,48 +56,45 @@ export default async function SignalsPage() {
         title="Current Focus"
         className="mb-12"
         actions={
-          focusedSignals.length > MAX_DISPLAY ? (
-            <Link
-              href="/signals"
-              className="text-sm font-medium text-secondary hover:text-on-surface transition-colors"
-            >
-              {focusedSignals.length - MAX_DISPLAY} &nbsp; more focused signals &rarr;
-            </Link>
-          ) : undefined
+          <div className="flex items-center gap-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-outline">
+              {visibleFocused.length}/{MAX_DISPLAY}
+            </span>
+            {focusedSignals.length > MAX_DISPLAY ? (
+              <Link
+                href="/signals"
+                className="text-sm font-medium text-secondary transition-colors hover:text-on-surface"
+              >
+                {focusedSignals.length - MAX_DISPLAY} more focused signals &rarr;
+              </Link>
+            ) : null}
+          </div>
         }
       >
         {visibleFocused.length === 0 ? (
           <EmptyFocus />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visibleFocused.map((signal) => (
-              <SignalCard
-                key={signal.id}
-                id={signal.id}
-                title={signal.title}
-                description={signal.description}
-                riskLevel={signal.riskLevel}
-                lastWorkedLabel={relativeWorkedLabel(signal.lastWorkedAt)}
-                ownerName={signal.owner?.name ?? null}
-                isFocusedToday={true}
-                streams={signal.streams.map((s) => ({ id: s.id, key: s.key, name: s.name }))}
-              />
-            ))}
-          </div>
+          <SignalList
+            totalSlots={MAX_DISPLAY}
+            signals={visibleFocused.map((signal) => ({
+              id: signal.id,
+              title: signal.title,
+              description: signal.description,
+              riskLevel: signal.riskLevel,
+              ownerName: signal.owner?.name ?? null,
+              focusedLabel: formatFocusedOnDate(
+                signal.focusedOnDate ?? signal.focusedAt ?? null
+              ),
+              streams: signal.streams.map((s) => ({
+                id: s.id,
+                key: s.key,
+                name: s.name,
+              })),
+            }))}
+          />
         )}
       </SectionCard>
 
-      {/* Some unfocused */}
-      <SectionCard title="Suggested Signals to focus">
-        <SignalList
-          signals={everythingElse.map((signal) => ({
-            id: signal.id,
-            title: signal.title,
-            riskLevel: signal.riskLevel,
-            lastWorkedLabel: relativeWorkedLabel(signal.lastWorkedAt),
-          }))}
-        />
-      </SectionCard>
     </div>
   );
 }

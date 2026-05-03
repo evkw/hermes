@@ -25,7 +25,7 @@ import {
   createChecklistItem,
   toggleChecklistItem,
   deleteChecklistItem,
-} from "./signal-checklist";
+} from "./checklist";
 
 function formData(entries: Record<string, string>): FormData {
   const fd = new FormData();

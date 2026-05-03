@@ -27,7 +27,7 @@ import {
   resolveSignalWithChecklistCheck,
   unresolveSignal,
   increaseRisk,
-} from "./signal-lifecycle";
+} from "./lifecycle";
 
 describe("resolveSignal", () => {
   beforeEach(() => vi.clearAllMocks());

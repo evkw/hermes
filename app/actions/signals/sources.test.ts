@@ -29,7 +29,7 @@ import {
   createSignalSource,
   updateSignalSource,
   deleteSignalSource,
-} from "./signal-sources";
+} from "./sources";
 
 function formData(entries: Record<string, string>): FormData {
   const fd = new FormData();
