@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { unfocusSignal } from "@/app/actions/signals/signals";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
 import { EmptySignalSlot } from "./empty-signal-slot";
+import { StartSessionDialog } from "@/app/components/start-session-dialog";
 
 type SignalListItem = {
   id: string;
@@ -16,6 +20,8 @@ type SignalListItem = {
 type SignalListProps = {
   signals: SignalListItem[];
   totalSlots: number;
+  activeSessionSignalId: string | null;
+  hasActiveSession: boolean;
 };
 
 function RiskDot({ riskLevel }: { riskLevel: RiskLevel }) {
@@ -32,11 +38,13 @@ function RiskDot({ riskLevel }: { riskLevel: RiskLevel }) {
   );
 }
 
-export function SignalList({ signals, totalSlots }: SignalListProps) {
+export function SignalList({ signals, totalSlots, activeSessionSignalId, hasActiveSession }: SignalListProps) {
   const occupiedSlots = signals.length;
   const emptySlots = Math.max(totalSlots - occupiedSlots, 0);
+  const [sessionSignal, setSessionSignal] = useState<{ id: string; title: string } | null>(null);
 
   return (
+    <>
     <div className="rounded-2xl border border-outline-variant/40 bg-white">
       <div className="flex items-center justify-between border-b border-outline-variant/30 px-5 py-4">
         <h3 className="text-xs font-medium uppercase tracking-wider text-outline">
@@ -48,10 +56,16 @@ export function SignalList({ signals, totalSlots }: SignalListProps) {
       </div>
 
       <ul className="divide-y divide-outline-variant/30">
-        {signals.map((signal) => (
+        {signals.map((signal) => {
+          const isInSession = activeSessionSignalId === signal.id;
+          return (
           <li
             key={signal.id}
-            className="group flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-surface-container-low/60 focus-within:bg-surface-container-low/60 sm:flex-row sm:items-start sm:justify-between"
+            className={`group flex flex-col gap-3 px-5 py-4 transition-colors sm:flex-row sm:items-start sm:justify-between ${
+              isInSession
+                ? "bg-primary/5 border-l-2 border-l-primary"
+                : "hover:bg-surface-container-low/60 focus-within:bg-surface-container-low/60"
+            }`}
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -90,6 +104,18 @@ export function SignalList({ signals, totalSlots }: SignalListProps) {
             </div>
 
             <div className="flex items-center gap-3 sm:self-center">
+              {isInSession ? (
+                <span className="text-xs font-medium text-primary">In session</span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={hasActiveSession}
+                  onClick={() => setSessionSignal({ id: signal.id, title: signal.title })}
+                  className="text-xs font-medium text-secondary opacity-0 transition-opacity hover:text-on-surface group-hover:opacity-100 group-focus-within:opacity-100 disabled:opacity-0"
+                >
+                  Start session
+                </button>
+              )}
               <form action={unfocusSignal.bind(null, signal.id)}>
                 <button
                   type="submit"
@@ -100,7 +126,8 @@ export function SignalList({ signals, totalSlots }: SignalListProps) {
               </form>
             </div>
           </li>
-        ))}
+          );
+        })}
         {Array.from({ length: emptySlots }, (_, index) => {
           const slotNumber = occupiedSlots + index + 1;
 
@@ -112,5 +139,15 @@ export function SignalList({ signals, totalSlots }: SignalListProps) {
         })}
       </ul>
     </div>
+
+    {sessionSignal && (
+      <StartSessionDialog
+        open={!!sessionSignal}
+        onOpenChange={(open) => { if (!open) setSessionSignal(null); }}
+        signalId={sessionSignal.id}
+        signalTitle={sessionSignal.title}
+      />
+    )}
+    </>
   );
 }

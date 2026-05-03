@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NewSignalDialog } from "./new-signal-dialog";
 import { MoreMenu } from "./more-menu";
+import { FocusSessionIndicator } from "./focus-session-indicator";
+import type { ActiveFocusSession } from "@/app/actions/signals/focus-sessions";
 
 const navLinks = [
   // { label: "Briefing", href: "/briefing" },
@@ -16,8 +18,10 @@ const navLinks = [
 
 export function TopNav({
   streams = [],
+  activeSession = null,
 }: {
   streams?: { id: string; key: string; name: string }[];
+  activeSession?: ActiveFocusSession | null;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -100,6 +104,8 @@ export function TopNav({
           </div>
         </div>
       )}
+
+      {activeSession && <FocusSessionIndicator session={activeSession} />}
     </nav>
   );
 }

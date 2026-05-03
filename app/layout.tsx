@@ -4,6 +4,7 @@ import "./globals.css";
 import { TopNav } from "./components/top-nav";
 import { cn } from "@/lib/utils";
 import { getStreams } from "@/app/actions/streams";
+import { getActiveFocusSession } from "@/app/actions/signals/focus-sessions";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -25,12 +26,19 @@ export default async function RootLayout({
   // getStreams may fail during static prerendering (e.g. /_not-found) when
   // DATABASE_URL is not available at build time. Fallback to empty array.
   const streams = await getStreams().catch(() => []);
+  const activeSession = await getActiveFocusSession().catch(() => null);
 
   return (
     <html lang="en" className={cn("h-full", "antialiased", inter.variable, "font-sans", geist.variable)}>
       <body className="min-h-full flex flex-col">
-        <TopNav streams={streams.map((s) => ({ id: s.id, key: s.key, name: s.name }))} />
-        <main className="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto w-full flex-1">
+        <TopNav
+          streams={streams.map((s) => ({ id: s.id, key: s.key, name: s.name }))}
+          activeSession={activeSession}
+        />
+        <main className={cn(
+          "pb-24 px-6 md:px-12 max-w-7xl mx-auto w-full flex-1",
+          activeSession ? "pt-40" : "pt-32"
+        )}>
           {children}
         </main>
       </body>

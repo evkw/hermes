@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { SectionCard } from "@/components/ui/section-card";
 import { EmptyFocus } from "./components/empty-focus";
 import { SignalList } from "./components/signal-list";
+import { getActiveFocusSession } from "@/app/actions/signals/focus-sessions";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +25,14 @@ function formatFocusedOnDate(date: Date | null): string | null {
 }
 
 export default async function SignalsPage() {
-  const activeSignals = await db.signal.findMany({
-    where: { status: "active" },
-    include: { owner: true, streams: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [activeSignals, activeSession] = await Promise.all([
+    db.signal.findMany({
+      where: { status: "active" },
+      include: { owner: true, streams: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    getActiveFocusSession(),
+  ]);
 
   const focusedSignals = activeSignals
     .filter((s) => s.isFocused)
@@ -76,6 +80,8 @@ export default async function SignalsPage() {
         ) : (
           <SignalList
             totalSlots={MAX_DISPLAY}
+            activeSessionSignalId={activeSession?.signalId ?? null}
+            hasActiveSession={activeSession !== null}
             signals={visibleFocused.map((signal) => ({
               id: signal.id,
               title: signal.title,

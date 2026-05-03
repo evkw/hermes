@@ -40,6 +40,7 @@ enum SignalEventType {
   focused
   unfocused
   focus_displaced
+  focus_session_completed
 }
 
 // -- Models --
@@ -66,6 +67,7 @@ model Signal {
   summaryExclusions SummaryExclusion[]
   streams Stream[]
   checklistItems SignalChecklistItem[]
+  focusSessions FocusSession[]
 
   @@index([status])
   @@index([riskLevel])
@@ -166,4 +168,17 @@ model SignalChecklistItem {
   signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
 
   @@index([signalId])
+}
+
+model FocusSession {
+  id              String    @id @default(cuid())
+  signalId        String
+  startedAt       DateTime  @default(now())
+  durationMinutes Int
+  endedAt         DateTime?
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId])
+  @@index([endedAt])
 }

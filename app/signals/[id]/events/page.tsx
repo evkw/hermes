@@ -14,6 +14,8 @@ import { ChecklistSection } from "./components/checklist-section";
 import { AddChecklistItemDialog } from "./components/add-checklist-item-dialog";
 import { ResolveButton } from "./components/resolve-button";
 import { FocusButton } from "@/app/components/focus-button";
+import { StartSessionButton } from "@/app/components/start-session-button";
+import { getActiveFocusSession } from "@/app/actions/signals/focus-sessions";
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -25,11 +27,12 @@ export default async function SignalEventsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [signal, mappings, people, allStreams] = await Promise.all([
+  const [signal, mappings, people, allStreams, activeSession] = await Promise.all([
     getSignalWithEvents(id),
     getOriginMappings(),
     getPeople(),
     getStreams(),
+    getActiveFocusSession(),
   ]);
 
   if (!signal) {
@@ -82,12 +85,20 @@ export default async function SignalEventsPage({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {signal.status === "active" && (
-              <FocusButton
-                signalId={signal.id}
-                signalTitle={signal.title}
-                isFocused={signal.isFocused}
-                variant="button"
-              />
+              <>
+                <StartSessionButton
+                  signalId={signal.id}
+                  signalTitle={signal.title}
+                  hasActiveSession={activeSession !== null}
+                  isInSession={activeSession?.signalId === signal.id}
+                />
+                <FocusButton
+                  signalId={signal.id}
+                  signalTitle={signal.title}
+                  isFocused={signal.isFocused}
+                  variant="button"
+                />
+              </>
             )}
             <EditSignalDialog
               signalId={signal.id}
