@@ -8,16 +8,6 @@ export const dynamic = "force-dynamic";
 import { SignalList } from "./components/signal-list";
 import { SectionCard } from "@/components/ui/section-card";
 
-function startOfTodayUTC(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-}
-
-function endOfTodayUTC(): Date {
-  const start = startOfTodayUTC();
-  return new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
-}
-
 const RISK_ORDER: Record<RiskLevel, number> = {
   needs_attention: 0,
   at_risk: 1,
@@ -54,32 +44,19 @@ function formatDate(date: Date): string {
 }
 
 export default async function SignalsPage() {
-  const today = startOfTodayUTC();
-  const todayEnd = endOfTodayUTC();
-
   const activeSignals = await db.signal.findMany({
     where: { status: "active" },
     include: { owner: true, streams: true },
     orderBy: { createdAt: "desc" },
   });
 
-  const focusedToday = sortByRiskThenDate(
-    activeSignals.filter(
-      (s) =>
-        s.focusedOnDate &&
-        s.focusedOnDate.getTime() >= today.getTime() &&
-        s.focusedOnDate.getTime() <= todayEnd.getTime()
-    )
+  const focusedSignals = sortByRiskThenDate(
+    activeSignals.filter((s) => s.isFocused)
   );
   const MAX_DISPLAY = 6;
-  const visibleFocused = focusedToday.slice(0, MAX_DISPLAY);
+  const visibleFocused = focusedSignals.slice(0, MAX_DISPLAY);
   const everythingElse = activeSignals
-    .filter(
-      (s) =>
-        !s.focusedOnDate ||
-        s.focusedOnDate.getTime() < today.getTime() ||
-        s.focusedOnDate.getTime() > todayEnd.getTime()
-    )
+    .filter((s) => !s.isFocused)
     .sort((a, b) => {
       const riskDiff = RISK_ORDER[a.riskLevel] - RISK_ORDER[b.riskLevel];
       if (riskDiff !== 0) return riskDiff;
@@ -94,22 +71,22 @@ export default async function SignalsPage() {
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-2xl font-semibold tracking-tight text-on-surface">
-          In Flight
+          My Focus
         </h1>
         <p className="mt-1 text-sm text-secondary">{formatDate(new Date())}</p>
       </div>
 
-      {/* Focused Today */}
+      {/* Focused Signals */}
       <SectionCard
-        title="Today's Focus"
+        title="Current Focus"
         className="mb-12"
         actions={
-          focusedToday.length > MAX_DISPLAY ? (
+          focusedSignals.length > MAX_DISPLAY ? (
             <Link
               href="/signals"
               className="text-sm font-medium text-secondary hover:text-on-surface transition-colors"
             >
-              {focusedToday.length - MAX_DISPLAY} &nbsp; more focused signals &rarr;
+              {focusedSignals.length - MAX_DISPLAY} &nbsp; more focused signals &rarr;
             </Link>
           ) : undefined
         }

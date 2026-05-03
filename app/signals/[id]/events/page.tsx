@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSignalWithEvents, unresolveSignal } from "@/app/actions/signals";
+import { getSignalWithEvents, unresolveSignal } from "@/app/actions/signals/signals";
 import { getOriginMappings } from "@/app/actions/origin-mappings";
 import { getStreams } from "@/app/actions/streams";
 import { SectionCard } from "@/components/ui/section-card";
@@ -13,6 +13,7 @@ import { getPeople } from "@/app/actions/people";
 import { ChecklistSection } from "./components/checklist-section";
 import { AddChecklistItemDialog } from "./components/add-checklist-item-dialog";
 import { ResolveButton } from "./components/resolve-button";
+import { FocusButton } from "@/app/components/focus-button";
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -80,6 +81,14 @@ export default async function SignalEventsPage({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {signal.status === "active" && (
+              <FocusButton
+                signalId={signal.id}
+                signalTitle={signal.title}
+                isFocused={signal.isFocused}
+                variant="button"
+              />
+            )}
             <EditSignalDialog
               signalId={signal.id}
               signalTitle={signal.title}

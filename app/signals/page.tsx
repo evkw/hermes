@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { SectionCard } from "@/components/ui/section-card";
 import { SignalsDataTable } from "./components/signals-data-table";
+import { FocusedSignalsSection } from "./components/focused-signals-section";
 import { getStreams } from "@/app/actions/streams";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ const SORTABLE_COLUMNS = new Set([
   "riskLevel",
   "title",
   "status",
-  "focusedOnDate",
+  "isFocused",
   "lastWorkedAt",
   "createdAt",
   "eventCount",
@@ -67,7 +68,7 @@ export default async function SignalsTablePage({
       : {}),
   };
 
-  const [signals, filteredCount, totalCount, allStreams] = await Promise.all([
+  const [signals, filteredCount, totalCount, allStreams, focusedSignals] = await Promise.all([
     db.signal.findMany({
       where,
       orderBy: buildOrderBy(sort, order),
@@ -78,6 +79,11 @@ export default async function SignalsTablePage({
     db.signal.count({ where }),
     db.signal.count(),
     getStreams(),
+    db.signal.findMany({
+      where: { isFocused: true, status: "active" },
+      orderBy: { focusedAt: "asc" },
+      include: { owner: true, streams: true },
+    }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
@@ -93,6 +99,7 @@ export default async function SignalsTablePage({
     lastWorkedAt: s.lastWorkedAt?.toISOString() ?? null,
     resolvedAt: s.resolvedAt?.toISOString() ?? null,
     focusedOnDate: s.focusedOnDate?.toISOString() ?? null,
+    isFocused: s.isFocused,
     eventCount: s._count.events,
     ownerName: s.owner?.name ?? null,
     streams: s.streams.map((st) => ({ id: st.id, key: st.key, name: st.name })),
@@ -112,6 +119,19 @@ export default async function SignalsTablePage({
               : `${filteredCount} active signal${filteredCount !== 1 ? "s" : ""}`}
         </p>
       </div>
+
+      {focusedSignals.length > 0 && (
+        <FocusedSignalsSection
+          signals={focusedSignals.map((s) => ({
+            id: s.id,
+            title: s.title,
+            description: s.description,
+            riskLevel: s.riskLevel,
+            ownerName: s.owner?.name ?? null,
+            streams: s.streams.map((st) => ({ id: st.id, key: st.key, name: st.name })),
+          }))}
+        />
+      )}
 
       <SectionCard>
         <SignalsDataTable

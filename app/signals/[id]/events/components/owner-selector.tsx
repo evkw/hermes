@@ -5,7 +5,7 @@ import { Label } from "@/components/core/label";
 import {
   updateSignalOwner,
   type UpdateOwnerState,
-} from "@/app/actions/signals";
+} from "@/app/actions/signals/signals";
 
 const initialState: UpdateOwnerState = { success: false };
 

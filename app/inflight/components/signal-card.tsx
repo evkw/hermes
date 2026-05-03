@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { toggleFocusToday, markWorkedToday, resolveSignal } from "@/app/actions/signals";
+import { toggleFocusToday, markWorkedToday } from "@/app/actions/signals/signals";
+import { resolveSignal } from "@/app/actions/signals/signals";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
 
 type SignalCardProps = {
@@ -82,14 +83,6 @@ export function SignalCard({
       <div className="mt-4 flex items-center gap-3 border-t border-outline-variant/30 pt-3">
         {isFocusedToday ? (
           <>
-            <form action={markWorkedToday.bind(null, id)}>
-              <button
-                type="submit"
-                className="text-xs font-medium text-on-surface hover:text-on-surface/70 transition-colors"
-              >
-                Mark worked
-              </button>
-            </form>
             <form action={toggleFocusToday.bind(null, id)}>
               <button
                 type="submit"

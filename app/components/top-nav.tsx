@@ -8,7 +8,7 @@ import { MoreMenu } from "./more-menu";
 
 const navLinks = [
   // { label: "Briefing", href: "/briefing" },
-  { label: "In Flight", href: "/inflight" },
+  { label: "My Focus", href: "/inflight" },
   { label: "Signals", href: "/signals" },
   { label: "Calendar", href: "/calendar" },
   { label: "Settings", href: "/settings" },

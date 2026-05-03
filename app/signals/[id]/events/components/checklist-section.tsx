@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { toggleChecklistItem, deleteChecklistItem } from "@/app/actions/signals";
+import { toggleChecklistItem, deleteChecklistItem } from "@/app/actions/signals/signals";
 
 type ChecklistItem = {
   id: string;

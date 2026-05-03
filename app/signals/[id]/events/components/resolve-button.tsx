@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { resolveSignalWithChecklistCheck } from "@/app/actions/signals";
+import { resolveSignalWithChecklistCheck } from "@/app/actions/signals/signals";
 import { Button } from "@/components/core/button";
 import {
   Dialog,

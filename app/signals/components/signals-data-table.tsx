@@ -20,6 +20,7 @@ import {
 } from "@/components/core/table";
 import { Input } from "@/components/core/input";
 import { Button } from "@/components/core/button";
+import { FocusButton } from "@/app/components/focus-button";
 
 type SignalRow = {
   id: string;
@@ -32,6 +33,7 @@ type SignalRow = {
   lastWorkedAt: string | null;
   resolvedAt: string | null;
   focusedOnDate: string | null;
+  isFocused: boolean;
   eventCount: number;
   ownerName: string | null;
   streams: { id: string; key: string; name: string }[];
@@ -133,13 +135,22 @@ const columns: ColumnDef<SignalRow>[] = [
     },
   },
   {
-    accessorKey: "focusedOnDate",
-    header: "Focused",
+    accessorKey: "isFocused",
+    header: "Focus",
     size: 80,
     cell: ({ row }) => {
-      const val = row.getValue("focusedOnDate") as string | null;
-      if (!val) return <span className="text-outline">—</span>;
-      return <span className="text-xs text-on-surface">{formatDate(val)}</span>;
+      if (row.original.status === "resolved") {
+        return <span className="text-outline">—</span>;
+      }
+      return (
+        <span onClick={(e) => e.stopPropagation()}>
+          <FocusButton
+            signalId={row.original.id}
+            signalTitle={row.original.title}
+            isFocused={row.original.isFocused}
+          />
+        </span>
+      );
     },
   },
   {

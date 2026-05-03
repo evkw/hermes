@@ -17,7 +17,7 @@ import { Label } from "@/components/core/label";
 import {
   createSignalEvent,
   type CreateEventState,
-} from "@/app/actions/signals";
+} from "@/app/actions/signals/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
 
 const initialState: CreateEventState = { success: false };

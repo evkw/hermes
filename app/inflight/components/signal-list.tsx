@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { toggleFocusToday, resolveSignal } from "@/app/actions/signals";
+import { toggleFocusToday } from "@/app/actions/signals/signals";
+import { resolveSignal } from "@/app/actions/signals/signals";
 import type { RiskLevel } from "@/app/generated/prisma/enums";
 
 type SignalListItem = {

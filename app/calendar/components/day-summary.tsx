@@ -6,7 +6,7 @@ import type { MonthData, DaySignalActivity } from "../page";
 import type { SummaryMode } from "./calendar-view";
 import { SectionCard } from "@/components/ui/section-card";
 import { ExternalLink, Eye, EyeOff } from "lucide-react";
-import { toggleSummaryExclusion } from "@/app/actions/signals";
+import { toggleSummaryExclusion } from "@/app/actions/signals/signals";
 
 const DAY_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

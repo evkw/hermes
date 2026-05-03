@@ -18,7 +18,7 @@ import {
   createSignalSource,
   updateSignalSource,
   type SourceActionState,
-} from "@/app/actions/signals";
+} from "@/app/actions/signals/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
 
 const BASELINE_TYPE_OPTIONS = [

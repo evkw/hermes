@@ -14,7 +14,7 @@ import { Button } from "@/components/core/button";
 import {
   deleteSignalSource,
   type SourceActionState,
-} from "@/app/actions/signals";
+} from "@/app/actions/signals/signals";
 
 const initialState: SourceActionState = { success: false };
 

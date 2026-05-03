@@ -37,6 +37,9 @@ enum SignalEventType {
   checklist_item_completed
   checklist_item_uncompleted
   checklist_item_deleted
+  focused
+  unfocused
+  focus_displaced
 }
 
 // -- Models --
@@ -52,6 +55,8 @@ model Signal {
   lastWorkedAt  DateTime?
   resolvedAt    DateTime?
   focusedOnDate DateTime?
+  isFocused     Boolean   @default(false)
+  focusedAt     DateTime?
 
   ownerId  String?
   owner    Person?  @relation(fields: [ownerId], references: [id])
@@ -65,6 +70,7 @@ model Signal {
   @@index([status])
   @@index([riskLevel])
   @@index([focusedOnDate])
+  @@index([isFocused])
   @@index([lastWorkedAt])
   @@index([createdAt])
   @@index([ownerId])

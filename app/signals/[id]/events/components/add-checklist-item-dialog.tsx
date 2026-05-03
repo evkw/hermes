@@ -17,7 +17,7 @@ import { Label } from "@/components/core/label";
 import {
   createChecklistItem,
   type ChecklistItemState,
-} from "@/app/actions/signals";
+} from "@/app/actions/signals/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
 
 const initialState: ChecklistItemState = { success: false };

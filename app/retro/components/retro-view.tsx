@@ -17,7 +17,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/core/table";
-import { markWorkedToday, resolveSignal, increaseRisk } from "@/app/actions/signals";
+import { markWorkedToday, resolveSignal, increaseRisk } from "@/app/actions/signals/signals";
 import { NewEventDialog } from "@/app/components/new-event-dialog";
 
 type RetroEvent = {

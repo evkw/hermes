@@ -14,7 +14,7 @@ import { Button } from "@/components/core/button";
 import { Input } from "@/components/core/input";
 import { Textarea } from "@/components/core/textarea";
 import { Label } from "@/components/core/label";
-import { updateSignal, type UpdateSignalState } from "@/app/actions/signals";
+import { updateSignal, type UpdateSignalState } from "@/app/actions/signals/signals";
 import { useSubmitShortcut } from "@/app/hooks/use-submit-shortcut";
 import { StreamPicker } from "@/app/components/stream-picker";
 
