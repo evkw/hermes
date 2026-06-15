@@ -124,3 +124,47 @@ docker compose down -v
 
 A separate local PostgreSQL container is used for development (port `5432`). See `.env` for the dev connection string. The Docker Compose stack uses its own isolated database so dev and prod data stay separate.
 
+## Moving To A New Laptop
+
+Hermes stores its live app data in the Docker volume behind the `db-prod` service. The safest way to migrate that data is to create a SQL dump on the old machine and restore it on the new one.
+
+### 1. Create a backup on the old machine
+
+From the repo root, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-prod.ps1
+```
+
+This creates:
+
+- a database dump in `backups\hermes-prod-<timestamp>.sql`
+- a copy of `.env` in `backups\env-<timestamp>.txt` if that file exists
+
+### 2. Copy these items to the new machine
+
+Copy:
+
+- your repo folder, or re-clone it from git
+- the generated `.sql` backup file
+- the copied env file if you want the same local settings
+
+### 3. Restore on the new machine
+
+On the new machine:
+
+1. Install Docker Desktop.
+2. Put the backup `.sql` file somewhere inside the repo, such as `backups\`.
+3. Start the database and restore the dump:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\restore-prod.ps1 -BackupFile .\backups\hermes-prod-YYYYMMDD-HHMMSS.sql
+```
+
+4. Start the full app if it is not already running:
+
+```powershell
+docker compose up --build
+```
+
+After that, Hermes should open with your existing data at [http://localhost:3001](http://localhost:3001).
